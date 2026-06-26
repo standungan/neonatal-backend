@@ -1,0 +1,49 @@
+import uuid
+
+from fastapi import APIRouter, Depends, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import AnyRole, PerawatOrAdmin
+from app.core.database import get_db
+from app.schemas.involvement import InvolvementCreate, InvolvementResponse, InvolvementSummary
+from app.services import involvement_service
+
+router = APIRouter()
+
+
+@router.post(
+    "/babies/{baby_id}/involvement",
+    response_model=InvolvementResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_involvement(
+    baby_id: uuid.UUID,
+    data: InvolvementCreate,
+    request: Request,
+    current_user: PerawatOrAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    ip = request.client.host if request.client else None
+    return await involvement_service.create_involvement(
+        baby_id, data, db, actor_id=current_user.id, ip=ip
+    )
+
+
+@router.get("/babies/{baby_id}/involvement", response_model=list[InvolvementResponse])
+async def list_involvement(
+    baby_id: uuid.UUID,
+    current_user: AnyRole,
+    skip: int = 0,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+):
+    return await involvement_service.list_involvement(baby_id, db, skip=skip, limit=limit)
+
+
+@router.get("/babies/{baby_id}/involvement/summary", response_model=InvolvementSummary)
+async def involvement_summary(
+    baby_id: uuid.UUID,
+    current_user: AnyRole,
+    db: AsyncSession = Depends(get_db),
+):
+    return await involvement_service.get_involvement_summary(baby_id, db)
