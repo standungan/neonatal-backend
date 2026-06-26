@@ -556,5 +556,3 @@ AuditLog (who did what, when)
 
 ---
 
-*Field or status-code question? The live Swagger UI at `{BASE_URL}/docs` mirrors this exactly and
-lets you execute requests with your token.*
