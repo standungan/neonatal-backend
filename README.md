@@ -439,6 +439,45 @@ Each domain ∈ 0–4 (else **422**). **PEI = round(sum of 8 domains / 32 × 100
 }
 ```
 
+### Monitoring Bayi — instrumen observasi (7 pilar / 48 item)
+Instrumen observasi perawatan bayi prematur (ditampilkan di UI sebagai **"Monitoring Bayi"**):
+**48 item** dalam **7 pilar**, tiap item skor **0–3** (3 = sesuai standar … 0 = penyimpangan berat).
+Katalog item bersifat tetap dan di-serve oleh API. _(Aspek "kerjasama dengan keluarga" tidak termasuk
+di sini — sudah ditangani modul **Keterlibatan Orang Tua**.)_
+
+| Method | Path | Role | Purpose |
+|---|---|---|---|
+| GET | `/api/v1/observation/catalog` | Any | Katalog 7 pilar + 48 item (untuk membangun form) |
+| POST | `/api/v1/babies/{baby_id}/observation` | Perawat/Admin | Simpan satu sesi observasi |
+| GET | `/api/v1/babies/{baby_id}/observation?skip&limit` | Any | Riwayat (terbaru dulu) |
+
+**Katalog** (`/observation/catalog`) → `{ pillars: [{ key, label, items: [{ item_code, text }] }], total_items: 48, max_total: 144 }`.
+`item_code` berformat `"{pillar_key}_{n}"` (mis. `tidur_1`, `kulit_8`).
+
+**Create body** — `scores` adalah map `item_code → 0..3` (item yang tak diisi dihitung 0):
+```json
+{
+  "observation_time": "2026-07-07T09:00:00+07:00",
+  "scores": { "tidur_1": 3, "tidur_2": 2, "nyeri_4": 1, "kulit_1": 0 },
+  "catatan": "Kulit ada iritasi plester"
+}
+```
+**201 Created** — server menghitung skor per pilar, total, kategori, dan alarm:
+```json
+{
+  "observation_id": "...", "baby_id": "...", "recorded_by": "...", "recorder_name": "Siti Aisyah",
+  "observation_time": "2026-07-07T09:00:00+07:00",
+  "scores": { "tidur_1": 3, "...": 0 }, "catatan": "...",
+  "total_score": 108, "max_total": 144, "percentage": 75.0, "category": "Baik",
+  "pillars": [ { "key": "tidur", "label": "Menjaga Masa Tidur Bayi", "score": 20, "max": 24, "percentage": 83.3 }, "…7 pilar" ],
+  "alarms": [ { "item_code": "kulit_1", "text": "Kulit utuh tanpa luka", "pillar_label": "Perlindungan Kulit", "score": 0 } ],
+  "created_at": "2026-07-07T02:00:00+00:00"
+}
+```
+- **Kategori** (dari persentase total): `≥85` Sangat Baik · `70–84` Baik · `55–69` Cukup · `40–54` Kurang · `<40` Sangat Kurang.
+- **Alarm** = item dengan skor 0/1. Ada item skor **0** → status inkubator dinaikkan ke `warning`.
+- Untuk dashboard: gunakan `pillars[].percentage` sebagai delapan sumbu **radar/spider chart**.
+
 ### Reports
 | Method | Path | Role | Purpose |
 |---|---|---|---|

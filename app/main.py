@@ -4,7 +4,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.v1 import audit, auth, babies, dashboard, incubators, involvement, monitoring, reports, users
+from app.api.v1 import (
+    audit,
+    auth,
+    babies,
+    dashboard,
+    incubators,
+    involvement,
+    monitoring,
+    observation,
+    reports,
+    users,
+)
 from app.core.config import settings
 
 app = FastAPI(
@@ -32,6 +43,7 @@ app.include_router(incubators.router,  prefix="/api/v1/incubators",  tags=["Incu
 app.include_router(babies.router,      prefix="/api/v1/babies",      tags=["Babies"])
 app.include_router(monitoring.router,  prefix="/api/v1",             tags=["Monitoring"])
 app.include_router(involvement.router, prefix="/api/v1",             tags=["Involvement"])
+app.include_router(observation.router, prefix="/api/v1",             tags=["Observation"])
 app.include_router(dashboard.router,   prefix="/api/v1/dashboard",   tags=["Dashboard"])
 app.include_router(reports.router,     prefix="/api/v1",             tags=["Reports"])
 app.include_router(audit.router,       prefix="/api/v1/audit-logs",  tags=["Audit"])

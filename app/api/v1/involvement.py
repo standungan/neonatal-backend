@@ -5,10 +5,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import AnyRole, PerawatOrAdmin
 from app.core.database import get_db
-from app.schemas.involvement import InvolvementCreate, InvolvementResponse, InvolvementSummary
+from app.schemas.involvement import (
+    InvolvementCatalog,
+    InvolvementCreate,
+    InvolvementResponse,
+    InvolvementSummary,
+)
 from app.services import involvement_service
 
 router = APIRouter()
+
+
+@router.get("/involvement/catalog", response_model=InvolvementCatalog)
+async def involvement_catalog(current_user: AnyRole):
+    """Pillar 6 "Kerjasama dengan Keluarga" — 6 items, source of truth for the form."""
+    return involvement_service.get_catalog()
 
 
 @router.post(

@@ -1,192 +1,225 @@
 -- =============================================================================
--- Seed Data — Sistem Monitoring Bayi pada Inkubator
--- Run AFTER schema.sql
--- Passwords below are bcrypt hashes of "Password123!"
+-- Seed Data (rich demo) — Sistem Monitoring Bayi pada Inkubator
+-- Run AFTER schema.sql.  Generated — do not edit by hand; see backend/database/gen_seed.py.
+--
+--   8 users · 9 incubators · 8 babies (7 active + 1 discharged)
+--   ~4 days of time-series: monitoring (3x/day) + daily observation + involvement
+--   Covers stable, improving, warning and critical cases.
+--
+--   All passwords are bcrypt hashes of "Password123!"
+--   Logins: admin@neonatal.rs · siti.aisyah@neonatal.rs · dr.anisa@neonatal.rs (+others)
 -- =============================================================================
 
--- =============================================================================
--- USERS
--- =============================================================================
+BEGIN;
 
+-- Idempotent: clear existing rows (children first) before reseeding.
+TRUNCATE TABLE audit_logs, observations, parent_involvement_records,
+    monitoring_records, baby_incubator_assignments, parents, babies,
+    incubators, users RESTART IDENTITY CASCADE;
+
+-- ── USERS ────────────────────────────────────────────────────────────────
 INSERT INTO users (id, role, email, password_hash, full_name) VALUES
-(
-    'aaaaaaaa-0001-0001-0001-000000000001',
-    'admin',
-    'admin@neonatal.rs',
-    '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K',
-    'Administrator Sistem'
-),
-(
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    'perawat',
-    'siti.aisyah@neonatal.rs',
-    '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K',
-    'Siti Aisyah'
-),
-(
-    'aaaaaaaa-0001-0001-0001-000000000003',
-    'perawat',
-    'budi.santoso@neonatal.rs',
-    '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K',
-    'Budi Santoso'
-),
-(
-    'aaaaaaaa-0001-0001-0001-000000000004',
-    'dokter',
-    'dr.anisa@neonatal.rs',
-    '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K',
-    'dr. Anisa Permata, Sp.A'
-);
+('aaaaaaaa-0001-0001-0001-000000000001', 'admin', 'admin@neonatal.rs', '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K', 'Administrator Sistem'),
+('aaaaaaaa-0001-0001-0001-000000000002', 'perawat', 'siti.aisyah@neonatal.rs', '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K', 'Siti Aisyah'),
+('aaaaaaaa-0001-0001-0001-000000000003', 'perawat', 'budi.santoso@neonatal.rs', '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K', 'Budi Santoso'),
+('aaaaaaaa-0001-0001-0001-000000000005', 'perawat', 'rahmawati@neonatal.rs', '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K', 'Rahmawati'),
+('aaaaaaaa-0001-0001-0001-000000000004', 'dokter', 'dr.anisa@neonatal.rs', '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K', 'dr. Anisa Permata, Sp.A'),
+('aaaaaaaa-0001-0001-0001-000000000006', 'dokter', 'dr.bagus@neonatal.rs', '$2b$12$mVNFQ/MY10L6vCb8hx9C9eXKfnWQGZHQDkBu3a.oZYhgQR5Xtjn0K', 'dr. Bagus Wicaksono, Sp.A');
 
--- =============================================================================
--- INCUBATORS
--- =============================================================================
-
+-- ── INCUBATORS ───────────────────────────────────────────────────────────
 INSERT INTO incubators (incubator_id, incubator_no, location, status) VALUES
 ('bbbbbbbb-0002-0002-0002-000000000001', '01', 'NICU Ruang A', 'terisi'),
 ('bbbbbbbb-0002-0002-0002-000000000002', '02', 'NICU Ruang A', 'terisi'),
 ('bbbbbbbb-0002-0002-0002-000000000003', '03', 'NICU Ruang A', 'kosong'),
 ('bbbbbbbb-0002-0002-0002-000000000004', '04', 'NICU Ruang A', 'warning'),
 ('bbbbbbbb-0002-0002-0002-000000000005', '05', 'NICU Ruang B', 'terisi'),
-('bbbbbbbb-0002-0002-0002-000000000006', '06', 'NICU Ruang B', 'kosong');
+('bbbbbbbb-0002-0002-0002-000000000006', '06', 'NICU Ruang B', 'warning'),
+('bbbbbbbb-0002-0002-0002-000000000007', '07', 'NICU Ruang B', 'terisi'),
+('bbbbbbbb-0002-0002-0002-000000000008', '08', 'NICU Ruang B', 'terisi'),
+('bbbbbbbb-0002-0002-0002-000000000009', '09', 'NICU Ruang B', 'tidak_tersedia');
 
--- =============================================================================
--- BABIES
--- =============================================================================
+-- ── BABIES ───────────────────────────────────────────────────────────────
+INSERT INTO babies (baby_id, baby_name, gender, birth_date, birth_weight, birth_length, gestational_age, birth_type, is_active) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'Ahmad Rizki', 'laki_laki', '2026-06-24', 2400.00, 46.0, 35, 'SC', TRUE),
+('cccccccc-0003-0003-0003-000000000002', 'Siti Zahra', 'perempuan', '2026-06-26', 1950.00, 42.5, 33, 'Normal', TRUE),
+('cccccccc-0003-0003-0003-000000000003', 'Muhammad Farhan', 'laki_laki', '2026-06-22', 1450.00, 40.0, 30, 'Normal', TRUE),
+('cccccccc-0003-0003-0003-000000000004', 'Hana Putri', 'perempuan', '2026-06-20', 2800.00, 48.0, 37, 'SC', TRUE),
+('cccccccc-0003-0003-0003-000000000005', 'Bilqis Ramadhani', 'perempuan', '2026-06-28', 1100.00, 37.0, 28, 'SC', TRUE),
+('cccccccc-0003-0003-0003-000000000006', 'Kenzo Pratama', 'laki_laki', '2026-06-25', 1700.00, 41.0, 32, 'Normal', TRUE),
+('cccccccc-0003-0003-0003-000000000007', 'Aleena Zahira', 'perempuan', '2026-06-27', 2050.00, 43.0, 34, 'Normal', TRUE),
+('cccccccc-0003-0003-0003-000000000008', 'Gibran Maulana', 'laki_laki', '2026-06-05', 2600.00, 47.0, 36, 'Normal', FALSE);
 
-INSERT INTO babies (baby_id, baby_name, gender, birth_date, birth_weight, birth_length, gestational_age, birth_type) VALUES
-(
-    'cccccccc-0003-0003-0003-000000000001',
-    'Ahmad Rizki',
-    'laki_laki',
-    '2025-05-12',
-    2400.00, 46.0, 35, 'SC'
-),
-(
-    'cccccccc-0003-0003-0003-000000000002',
-    'Siti Aisyah',
-    'perempuan',
-    '2025-05-13',
-    1950.00, 42.5, 33, 'Normal'
-),
-(
-    'cccccccc-0003-0003-0003-000000000003',
-    'Muhammad Farhan',
-    'laki_laki',
-    '2025-05-10',
-    2100.00, 44.0, 34, 'Normal'
-),
-(
-    'cccccccc-0003-0003-0003-000000000004',
-    'Hana Putri',
-    'perempuan',
-    '2025-05-15',
-    2800.00, 48.0, 37, 'SC'
-);
-
--- =============================================================================
--- PARENTS
--- =============================================================================
-
+-- ── PARENTS (one-to-one with babies) ─────────────────────────────────────
 INSERT INTO parents (baby_id, mother_name, father_name, mother_phone, mother_medical_history) VALUES
-('cccccccc-0003-0003-0003-000000000001', 'Rina Dewi',    'Budi Rizki',  '081234567890', 'Hipertensi ringan'),
-('cccccccc-0003-0003-0003-000000000002', 'Kartini',      'Hasan',       '082345678901', NULL),
-('cccccccc-0003-0003-0003-000000000003', 'Yuni Astuti',  'Farhan Sr',   '083456789012', 'Diabetes gestasional'),
-('cccccccc-0003-0003-0003-000000000004', 'Dewi Lestari', 'Anton',       '084567890123', NULL);
+('cccccccc-0003-0003-0003-000000000001', 'Rina Dewi', 'Budi Rizki', '081234567890', 'Hipertensi ringan dalam kehamilan'),
+('cccccccc-0003-0003-0003-000000000002', 'Kartini', 'Hasan', '082345678901', NULL),
+('cccccccc-0003-0003-0003-000000000003', 'Yuni Astuti', 'Farhan Sr', '083456789012', 'Diabetes gestasional; KPD 18 jam'),
+('cccccccc-0003-0003-0003-000000000004', 'Dewi Lestari', 'Anton', '084567890123', NULL),
+('cccccccc-0003-0003-0003-000000000005', 'Nur Halimah', 'Zulkifli', '085678901234', 'Preeklampsia berat; sangat prematur (ELBW)'),
+('cccccccc-0003-0003-0003-000000000006', 'Melati Sari', 'Gunawan', '086789012345', NULL),
+('cccccccc-0003-0003-0003-000000000007', 'Fitri Handayani', 'Rizal', '087890123456', NULL),
+('cccccccc-0003-0003-0003-000000000008', 'Ayu Wandira', 'Teguh', '088901234567', NULL);
 
--- =============================================================================
--- BABY_INCUBATOR_ASSIGNMENTS
--- =============================================================================
+-- ── BABY ↔ INCUBATOR ASSIGNMENTS ─────────────────────────────────────────
+INSERT INTO baby_incubator_assignments (baby_id, incubator_id, assigned_by, assigned_at, discharged_at, status) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'bbbbbbbb-0002-0002-0002-000000000001', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-24 08:00:00+07', NULL, 'active'),
+('cccccccc-0003-0003-0003-000000000002', 'bbbbbbbb-0002-0002-0002-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-26 08:00:00+07', NULL, 'active'),
+('cccccccc-0003-0003-0003-000000000003', 'bbbbbbbb-0002-0002-0002-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-06-22 08:00:00+07', NULL, 'active'),
+('cccccccc-0003-0003-0003-000000000004', 'bbbbbbbb-0002-0002-0002-000000000005', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-20 08:00:00+07', NULL, 'active'),
+('cccccccc-0003-0003-0003-000000000005', 'bbbbbbbb-0002-0002-0002-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-06-28 08:00:00+07', NULL, 'active'),
+('cccccccc-0003-0003-0003-000000000006', 'bbbbbbbb-0002-0002-0002-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-06-25 08:00:00+07', NULL, 'active'),
+('cccccccc-0003-0003-0003-000000000007', 'bbbbbbbb-0002-0002-0002-000000000008', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-06-27 08:00:00+07', NULL, 'active'),
+('cccccccc-0003-0003-0003-000000000008', 'bbbbbbbb-0002-0002-0002-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-05 09:00:00+07', '2026-06-30 10:00:00+07', 'discharged');
 
-INSERT INTO baby_incubator_assignments (baby_id, incubator_id, assigned_by, assigned_at, status) VALUES
-(
-    'cccccccc-0003-0003-0003-000000000001',
-    'bbbbbbbb-0002-0002-0002-000000000001',
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    '2025-05-12 08:00:00+07',
-    'active'
-),
-(
-    'cccccccc-0003-0003-0003-000000000002',
-    'bbbbbbbb-0002-0002-0002-000000000002',
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    '2025-05-13 09:30:00+07',
-    'active'
-),
-(
-    'cccccccc-0003-0003-0003-000000000003',
-    'bbbbbbbb-0002-0002-0002-000000000004',
-    'aaaaaaaa-0001-0001-0001-000000000003',
-    '2025-05-10 07:15:00+07',
-    'active'
-),
-(
-    'cccccccc-0003-0003-0003-000000000004',
-    'bbbbbbbb-0002-0002-0002-000000000005',
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    '2025-05-15 10:00:00+07',
-    'active'
-);
-
--- =============================================================================
--- MONITORING_RECORDS (a few samples per baby)
--- =============================================================================
-
+-- ── MONITORING RECORDS (3x/day over the window) ──────────────────────────
 INSERT INTO monitoring_records
     (baby_id, recorded_by, observation_time, suhu_bayi, suhu_inkubator, kelembapan_inkubator,
-     heart_rate, respiratory_rate, spo2,
-     expression_score, movement_score, pain_score, sleep_duration_min, sleep_quality, agitation_episodes)
-VALUES
--- Ahmad Rizki — Inkubator 01
-(
-    'cccccccc-0003-0003-0003-000000000001',
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    '2025-05-16 09:30:00+07',
-    36.8, 33.5, 55.00, 128, 48, 98.00, 3, 4, 1, 120, 4, 0
-),
-(
-    'cccccccc-0003-0003-0003-000000000001',
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    '2025-05-16 14:00:00+07',
-    37.0, 33.8, 56.50, 132, 50, 97.50, 4, 4, 0, 90, 4, 1
-),
--- Siti Aisyah — Inkubator 02
-(
-    'cccccccc-0003-0003-0003-000000000002',
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    '2025-05-16 10:00:00+07',
-    37.1, 34.0, 58.00, 135, 52, 96.00, 2, 3, 2, 100, 3, 1
-),
--- Muhammad Farhan — Inkubator 04 (warning: RR & pain out of range)
-(
-    'cccccccc-0003-0003-0003-000000000003',
-    'aaaaaaaa-0001-0001-0001-000000000003',
-    '2025-05-16 09:00:00+07',
-    37.6, 34.5, 52.00, 160, 68, 92.00, 2, 2, 4, 40, 2, 3
-);
+     heart_rate, respiratory_rate, spo2, expression_score, movement_score, pain_score,
+     sleep_duration_min, sleep_quality, agitation_episodes, catatan) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 08:00:00+07', 37.0, 33.9, 56.56, 151, 58, 95.46, 2, 3, 3, 78, 4, 3, NULL),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 14:00:00+07', 37.0, 34.0, 56.05, 149, 55, 95.99, 2, 3, 3, 90, 2, 2, 'Perbaikan klinis'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 20:00:00+07', 37.1, 34.0, 56.19, 148, 52, 96.09, 4, 4, 2, 86, 2, 2, NULL),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 08:00:00+07', 37.0, 33.9, 57.58, 143, 53, 96.37, 4, 2, 1, 102, 4, 1, 'Perbaikan klinis'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 14:00:00+07', 37.0, 33.6, 55.22, 136, 49, 97.26, 2, 3, 2, 96, 4, 2, 'BB naik, aktif'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 20:00:00+07', 36.8, 33.5, 55.86, 135, 52, 97.39, 4, 4, 1, 104, 4, 1, NULL),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 08:00:00+07', 36.9, 33.4, 54.45, 135, 49, 97.78, 4, 4, 1, 120, 3, 1, NULL),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 14:00:00+07', 36.9, 33.3, 54.32, 133, 48, 97.83, 4, 3, 1, 127, 5, 0, NULL),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 20:00:00+07', 36.9, 33.2, 52.16, 130, 45, 97.78, 5, 3, 1, 114, 5, 1, NULL),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 08:00:00+07', 36.8, 33.4, 53.68, 131, 48, 98.75, 4, 4, 0, 135, 4, 0, 'Perbaikan klinis'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 08:00:00+07', 37.1, 34.1, 57.19, 146, 55, 95.74, 2, 4, 2, 89, 3, 3, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 14:00:00+07', 37.0, 33.8, 56.93, 145, 55, 96.26, 4, 2, 3, 87, 4, 2, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 20:00:00+07', 37.1, 33.7, 57.87, 146, 54, 95.77, 2, 4, 3, 82, 4, 2, NULL),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 08:00:00+07', 36.9, 33.9, 55.80, 138, 54, 96.16, 3, 3, 1, 101, 4, 1, 'Kondisi stabil'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 14:00:00+07', 37.0, 33.5, 54.70, 140, 50, 96.61, 3, 2, 2, 108, 4, 2, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 20:00:00+07', 36.9, 33.4, 55.14, 134, 49, 97.65, 4, 5, 1, 115, 4, 2, NULL),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 08:00:00+07', 37.0, 33.6, 53.93, 138, 48, 97.74, 5, 3, 2, 106, 5, 2, 'Kondisi stabil'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 14:00:00+07', 36.8, 33.2, 53.70, 130, 49, 98.14, 5, 3, 1, 128, 5, 0, 'Kondisi stabil'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 20:00:00+07', 36.8, 33.3, 54.69, 133, 45, 98.38, 5, 5, 1, 128, 5, 0, NULL),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 08:00:00+07', 36.7, 33.1, 51.62, 133, 45, 98.75, 4, 4, 0, 133, 5, 1, NULL),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 08:00:00+07', 37.8, 34.7, 59.54, 165, 64, 91.54, 3, 2, 4, 50, 2, 4, 'Takipnea, monitoring ketat'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 14:00:00+07', 37.8, 34.6, 59.21, 168, 69, 92.74, 2, 3, 5, 48, 2, 2, NULL),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 20:00:00+07', 37.5, 34.3, 60.88, 168, 69, 92.47, 3, 2, 3, 54, 3, 3, 'SpO2 borderline, O2 dinaikkan'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 08:00:00+07', 37.5, 34.5, 62.56, 170, 69, 91.85, 3, 3, 4, 55, 2, 4, NULL),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 14:00:00+07', 37.5, 34.6, 59.14, 167, 68, 92.62, 3, 3, 4, 53, 3, 2, 'Takipnea, monitoring ketat'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 20:00:00+07', 37.4, 34.7, 63.40, 171, 73, 93.39, 3, 3, 5, 39, 3, 3, 'SpO2 borderline, O2 dinaikkan'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 08:00:00+07', 37.7, 34.6, 63.10, 172, 73, 91.34, 3, 3, 4, 52, 2, 2, 'SpO2 borderline, O2 dinaikkan'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 14:00:00+07', 37.8, 34.0, 61.04, 161, 72, 91.22, 2, 3, 3, 48, 2, 2, 'Takipnea, monitoring ketat'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 20:00:00+07', 37.5, 34.8, 59.58, 171, 71, 93.44, 3, 2, 3, 55, 3, 4, 'SpO2 borderline, O2 dinaikkan'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 08:00:00+07', 37.8, 34.0, 60.24, 160, 72, 91.01, 2, 2, 5, 47, 2, 3, 'SpO2 borderline, O2 dinaikkan'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 08:00:00+07', 37.1, 34.0, 57.18, 152, 58, 95.33, 4, 2, 2, 74, 4, 2, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 14:00:00+07', 37.0, 34.1, 58.11, 147, 52, 95.57, 4, 2, 3, 89, 2, 2, 'Kondisi stabil'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 20:00:00+07', 37.0, 33.9, 55.58, 145, 51, 96.50, 3, 3, 3, 83, 3, 2, NULL),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 08:00:00+07', 37.0, 33.9, 55.79, 142, 51, 96.42, 4, 2, 1, 102, 5, 2, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 14:00:00+07', 36.9, 33.7, 54.32, 136, 51, 96.63, 3, 2, 1, 105, 4, 2, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 20:00:00+07', 36.9, 33.7, 54.13, 138, 50, 96.85, 4, 5, 2, 114, 4, 1, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 08:00:00+07', 36.9, 33.5, 53.71, 135, 51, 97.39, 4, 3, 1, 108, 4, 1, NULL),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 14:00:00+07', 36.9, 33.2, 53.73, 135, 50, 98.17, 4, 5, 0, 111, 5, 0, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 20:00:00+07', 36.8, 33.4, 52.71, 129, 45, 98.57, 4, 5, 1, 120, 5, 1, NULL),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-08 08:00:00+07', 36.8, 33.1, 52.47, 127, 44, 98.97, 3, 4, 0, 129, 4, 1, NULL),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 08:00:00+07', 36.1, 34.9, 63.28, 172, 75, 90.04, 1, 1, 6, 43, 1, 5, 'Apnea singkat, stimulasi taktil'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 14:00:00+07', 36.1, 34.8, 69.84, 175, 70, 90.40, 2, 2, 6, 40, 1, 3, 'Apnea singkat, stimulasi taktil'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 20:00:00+07', 36.1, 34.7, 65.56, 179, 77, 90.02, 1, 1, 4, 34, 2, 5, 'Desaturasi berulang, lapor DPJP'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 08:00:00+07', 36.3, 35.4, 63.82, 179, 66, 91.02, 2, 1, 6, 42, 1, 5, 'Apnea singkat, stimulasi taktil'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 14:00:00+07', 36.3, 34.9, 65.50, 182, 74, 88.01, 1, 2, 6, 40, 2, 5, 'Desaturasi berulang, lapor DPJP'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 20:00:00+07', 36.3, 34.7, 62.47, 185, 78, 88.90, 1, 1, 6, 45, 2, 4, 'Apnea singkat, stimulasi taktil'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 08:00:00+07', 36.0, 34.6, 65.35, 169, 69, 90.85, 1, 2, 6, 35, 2, 4, 'Apnea singkat, stimulasi taktil'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 14:00:00+07', 36.4, 35.2, 69.16, 172, 71, 87.61, 1, 1, 4, 28, 1, 5, 'Kondisi belum stabil'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 20:00:00+07', 36.2, 35.2, 67.23, 172, 72, 89.67, 2, 1, 4, 29, 2, 5, 'Kondisi belum stabil'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 08:00:00+07', 36.0, 35.3, 66.62, 177, 72, 91.08, 2, 2, 5, 32, 1, 4, 'Apnea singkat, stimulasi taktil'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 08:00:00+07', 37.1, 33.9, 57.83, 150, 56, 95.83, 3, 4, 2, 89, 4, 3, 'Perbaikan klinis'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 14:00:00+07', 37.1, 33.8, 57.57, 149, 53, 96.20, 4, 3, 2, 92, 3, 3, NULL),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 20:00:00+07', 37.1, 33.8, 58.06, 143, 53, 95.99, 2, 3, 2, 92, 2, 3, 'Perbaikan klinis'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 08:00:00+07', 36.9, 33.5, 57.15, 140, 53, 96.02, 2, 3, 1, 105, 3, 2, 'Perbaikan klinis'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 14:00:00+07', 37.0, 33.6, 54.52, 136, 49, 97.09, 4, 4, 1, 92, 5, 2, 'BB naik, aktif'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 20:00:00+07', 37.0, 33.7, 55.70, 137, 49, 97.51, 4, 3, 1, 106, 3, 1, NULL),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 08:00:00+07', 36.9, 33.7, 53.65, 140, 49, 97.57, 3, 4, 2, 117, 5, 2, 'Perbaikan klinis'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 14:00:00+07', 37.0, 33.5, 52.72, 136, 49, 97.56, 3, 4, 0, 121, 4, 0, NULL),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 20:00:00+07', 36.9, 33.2, 54.59, 132, 47, 97.98, 5, 3, 0, 124, 5, 1, NULL),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 08:00:00+07', 36.9, 33.1, 52.59, 134, 48, 98.60, 3, 3, 0, 124, 4, 0, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 08:00:00+07', 37.2, 34.0, 57.71, 145, 56, 95.26, 2, 4, 2, 90, 3, 2, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 14:00:00+07', 37.0, 33.7, 56.65, 147, 52, 95.70, 4, 3, 3, 82, 4, 3, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 20:00:00+07', 37.0, 33.9, 56.71, 147, 55, 95.98, 2, 3, 3, 83, 4, 2, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 08:00:00+07', 37.1, 33.6, 56.24, 146, 51, 96.88, 4, 3, 1, 94, 5, 2, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 14:00:00+07', 36.9, 33.7, 55.96, 139, 50, 97.16, 4, 4, 1, 105, 3, 2, 'Toleransi minum baik'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 20:00:00+07', 36.9, 33.4, 54.10, 139, 50, 96.97, 5, 5, 1, 114, 5, 2, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 08:00:00+07', 37.0, 33.4, 53.93, 134, 48, 97.81, 5, 5, 1, 116, 3, 2, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 14:00:00+07', 36.9, 33.4, 53.25, 138, 46, 97.72, 4, 4, 0, 123, 5, 0, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 20:00:00+07', 36.9, 33.2, 53.32, 132, 48, 98.44, 5, 4, 0, 123, 5, 1, NULL),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 08:00:00+07', 36.7, 33.4, 53.06, 130, 46, 98.47, 4, 5, 1, 127, 4, 0, 'Kondisi stabil');
 
--- =============================================================================
--- PARENT_INVOLVEMENT_RECORDS
--- =============================================================================
-
--- Pillar 8 sub-domains (0–4 each); skor_keterlibatan (PEI) = round(sum/32*100)
+-- ── PARENT INVOLVEMENT RECORDS — Pilar 6 (6 items 0–3; %=total/18*100) ────
 INSERT INTO parent_involvement_records
-    (baby_id, recorded_by, observation_time, durasi_menyusui, durasi_interaksi,
-     presence_score, physical_interaction_score, feeding_participation_score, care_participation_score,
-     knowledge_score, communication_score, emotional_readiness_score, discharge_readiness_score,
-     skor_keterlibatan, kondisi_bayi)
-VALUES
--- domains sum = 25/32 → 78
-(
-    'cccccccc-0003-0003-0003-000000000001',
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    '2025-05-16 11:00:00+07',
-    20, 45, 4, 4, 3, 3, 3, 3, 3, 2, 78, 'Tenang'
-),
--- domains sum = 16/32 → 50
-(
-    'cccccccc-0003-0003-0003-000000000002',
-    'aaaaaaaa-0001-0001-0001-000000000002',
-    '2025-05-16 11:30:00+07',
-    10, 30, 2, 2, 2, 2, 2, 2, 2, 2, 50, 'Aktif'
-);
+    (baby_id, recorded_by, observation_time, scores, catatan,
+     durasi_menyusui, durasi_interaksi, kondisi_bayi, total_score, percentage, category) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":1,"keluarga_4":2,"keluarga_5":2,"keluarga_6":2}'::jsonb, NULL, 18, 41, 'Tidur', 11, 61.1, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":2,"keluarga_4":2,"keluarga_5":2,"keluarga_6":2}'::jsonb, NULL, 16, 25, 'Aktif', 12, 66.7, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 11:00:00+07', '{"keluarga_1":3,"keluarga_2":3,"keluarga_3":3,"keluarga_4":3,"keluarga_5":3,"keluarga_6":2}'::jsonb, NULL, 24, 26, 'Tenang', 17, 94.4, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":3,"keluarga_4":3,"keluarga_5":3,"keluarga_6":3}'::jsonb, NULL, 15, 59, 'Aktif', 16, 88.9, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":2,"keluarga_4":1,"keluarga_5":1,"keluarga_6":2}'::jsonb, NULL, 22, 36, 'Tenang', 8, 44.4, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":1,"keluarga_4":1,"keluarga_5":1,"keluarga_6":1}'::jsonb, NULL, 16, 54, 'Tenang', 8, 44.4, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 11:00:00+07', '{"keluarga_1":1,"keluarga_2":2,"keluarga_3":2,"keluarga_4":2,"keluarga_5":1,"keluarga_6":2}'::jsonb, NULL, 23, 27, 'Rewel', 10, 55.6, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":1,"keluarga_4":2,"keluarga_5":2,"keluarga_6":2}'::jsonb, NULL, 5, 20, 'Tenang', 11, 61.1, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":1,"keluarga_4":1,"keluarga_5":1,"keluarga_6":1}'::jsonb, NULL, 12, 26, 'Tidur', 6, 33.3, 'Sangat Kurang'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":1,"keluarga_4":2,"keluarga_5":2,"keluarga_6":1}'::jsonb, NULL, 14, 44, 'Tenang', 8, 44.4, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":1,"keluarga_4":2,"keluarga_5":1,"keluarga_6":1}'::jsonb, NULL, 21, 59, 'Rewel', 7, 38.9, 'Sangat Kurang'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":1,"keluarga_4":1,"keluarga_5":1,"keluarga_6":2}'::jsonb, NULL, 22, 47, 'Aktif', 7, 38.9, 'Sangat Kurang'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":2,"keluarga_4":2,"keluarga_5":3,"keluarga_6":3}'::jsonb, NULL, 13, 38, 'Tidur', 14, 77.8, 'Baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":2,"keluarga_4":2,"keluarga_5":2,"keluarga_6":3}'::jsonb, NULL, 21, 30, 'Tenang', 13, 72.2, 'Baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":3,"keluarga_4":2,"keluarga_5":3,"keluarga_6":2}'::jsonb, NULL, 15, 53, 'Tenang', 14, 77.8, 'Baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 11:00:00+07', '{"keluarga_1":3,"keluarga_2":3,"keluarga_3":2,"keluarga_4":3,"keluarga_5":3,"keluarga_6":2}'::jsonb, NULL, 10, 39, 'Tenang', 16, 88.9, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":1,"keluarga_4":1,"keluarga_5":1,"keluarga_6":1}'::jsonb, NULL, 6, 27, 'Tenang', 6, 33.3, 'Sangat Kurang'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":1,"keluarga_4":2,"keluarga_5":1,"keluarga_6":1}'::jsonb, NULL, 1, 47, 'Tenang', 7, 38.9, 'Sangat Kurang'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":1,"keluarga_4":1,"keluarga_5":1,"keluarga_6":1}'::jsonb, NULL, 5, 48, 'Aktif', 6, 33.3, 'Sangat Kurang'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 11:00:00+07', '{"keluarga_1":1,"keluarga_2":1,"keluarga_3":2,"keluarga_4":1,"keluarga_5":1,"keluarga_6":1}'::jsonb, NULL, 6, 32, 'Rewel', 7, 38.9, 'Sangat Kurang'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 11:00:00+07', '{"keluarga_1":2,"keluarga_2":1,"keluarga_3":1,"keluarga_4":2,"keluarga_5":1,"keluarga_6":1}'::jsonb, NULL, 13, 52, 'Tenang', 8, 44.4, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 11:00:00+07', '{"keluarga_1":1,"keluarga_2":2,"keluarga_3":1,"keluarga_4":1,"keluarga_5":2,"keluarga_6":1}'::jsonb, NULL, 7, 22, 'Rewel', 8, 44.4, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":2,"keluarga_4":1,"keluarga_5":2,"keluarga_6":2}'::jsonb, NULL, 12, 23, 'Aktif', 11, 61.1, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":2,"keluarga_4":2,"keluarga_5":2,"keluarga_6":2}'::jsonb, NULL, 5, 23, 'Tidur', 12, 66.7, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-05 11:00:00+07', '{"keluarga_1":2,"keluarga_2":3,"keluarga_3":2,"keluarga_4":2,"keluarga_5":2,"keluarga_6":2}'::jsonb, NULL, 11, 57, 'Rewel', 13, 72.2, 'Baik'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 11:00:00+07', '{"keluarga_1":2,"keluarga_2":3,"keluarga_3":2,"keluarga_4":2,"keluarga_5":3,"keluarga_6":2}'::jsonb, NULL, 20, 20, 'Tidur', 14, 77.8, 'Baik'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":2,"keluarga_4":2,"keluarga_5":2,"keluarga_6":2}'::jsonb, NULL, 14, 32, 'Rewel', 12, 66.7, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-08 11:00:00+07', '{"keluarga_1":2,"keluarga_2":2,"keluarga_3":2,"keluarga_4":2,"keluarga_5":2,"keluarga_6":2}'::jsonb, NULL, 22, 24, 'Rewel', 12, 66.7, 'Cukup');
+
+-- ── OBSERVATIONS (8-pillar instrument, 48 items scored 0–3; daily) ───────
+--   scores JSONB is the full 48-item map; total_score/percentage/category
+--   are precomputed to match the backend (total/144*100, category bands).
+INSERT INTO observations
+    (baby_id, recorded_by, observation_time, scores, catatan, total_score, percentage, category) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 09:00:00+07', '{"tidur_1":3,"tidur_2":2,"tidur_3":2,"tidur_4":3,"tidur_5":3,"tidur_6":2,"tidur_7":2,"tidur_8":2,"nyeri_1":3,"nyeri_2":2,"nyeri_3":3,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":2,"posisi_6":3,"kulit_1":2,"kulit_2":3,"kulit_3":2,"kulit_4":3,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":3,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":3,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":3,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":3,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":3}'::jsonb, NULL, 109, 75.70, 'Baik'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 09:00:00+07', '{"tidur_1":3,"tidur_2":2,"tidur_3":2,"tidur_4":2,"tidur_5":3,"tidur_6":3,"tidur_7":2,"tidur_8":3,"nyeri_1":2,"nyeri_2":3,"nyeri_3":2,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":3,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":3,"kulit_3":3,"kulit_4":2,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":3,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":3,"nutrisi_8":3,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":3,"lingkungan_4":3,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":3,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":3,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 113, 78.50, 'Baik'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":3,"tidur_4":3,"tidur_5":2,"tidur_6":3,"tidur_7":3,"tidur_8":3,"nyeri_1":2,"nyeri_2":3,"nyeri_3":3,"nyeri_4":3,"nyeri_5":3,"nyeri_6":3,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":3,"posisi_5":2,"posisi_6":3,"kulit_1":3,"kulit_2":3,"kulit_3":2,"kulit_4":3,"kulit_5":2,"kulit_6":3,"kulit_7":2,"kulit_8":3,"nutrisi_1":2,"nutrisi_2":3,"nutrisi_3":2,"nutrisi_4":3,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":3,"nutrisi_8":3,"lingkungan_1":3,"lingkungan_2":2,"lingkungan_3":3,"lingkungan_4":3,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":3,"kolaborasi_2":2,"kolaborasi_3":3,"kolaborasi_4":3,"kolaborasi_5":3,"kolaborasi_6":2}'::jsonb, NULL, 124, 86.10, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000001', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-08 09:00:00+07', '{"tidur_1":3,"tidur_2":3,"tidur_3":3,"tidur_4":3,"tidur_5":3,"tidur_6":3,"tidur_7":2,"tidur_8":3,"nyeri_1":3,"nyeri_2":3,"nyeri_3":3,"nyeri_4":2,"nyeri_5":3,"nyeri_6":2,"posisi_1":2,"posisi_2":3,"posisi_3":2,"posisi_4":3,"posisi_5":3,"posisi_6":2,"kulit_1":3,"kulit_2":2,"kulit_3":3,"kulit_4":2,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":3,"nutrisi_1":3,"nutrisi_2":3,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":2,"nutrisi_6":3,"nutrisi_7":2,"nutrisi_8":3,"lingkungan_1":3,"lingkungan_2":3,"lingkungan_3":2,"lingkungan_4":3,"lingkungan_5":3,"lingkungan_6":3,"kolaborasi_1":3,"kolaborasi_2":3,"kolaborasi_3":3,"kolaborasi_4":2,"kolaborasi_5":3,"kolaborasi_6":3}'::jsonb, 'Perkembangan sesuai target', 129, 89.60, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 09:00:00+07', '{"tidur_1":2,"tidur_2":3,"tidur_3":3,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":3,"tidur_8":2,"nyeri_1":2,"nyeri_2":3,"nyeri_3":2,"nyeri_4":3,"nyeri_5":2,"nyeri_6":3,"posisi_1":3,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":3,"posisi_6":2,"kulit_1":2,"kulit_2":2,"kulit_3":2,"kulit_4":2,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":3,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":3,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":3,"lingkungan_4":2,"lingkungan_5":3,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":3,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 111, 77.10, 'Baik'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":2,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":2,"tidur_8":2,"nyeri_1":2,"nyeri_2":2,"nyeri_3":2,"nyeri_4":2,"nyeri_5":3,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":3,"posisi_4":2,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":2,"kulit_3":2,"kulit_4":2,"kulit_5":2,"kulit_6":2,"kulit_7":3,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":3,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":3,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":3,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 102, 70.80, 'Baik'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":2,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":2,"tidur_8":2,"nyeri_1":2,"nyeri_2":3,"nyeri_3":2,"nyeri_4":3,"nyeri_5":2,"nyeri_6":3,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":2,"kulit_3":2,"kulit_4":2,"kulit_5":2,"kulit_6":3,"kulit_7":3,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":3,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":3,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":3,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":3,"kolaborasi_6":2}'::jsonb, NULL, 105, 72.90, 'Baik'),
+('cccccccc-0003-0003-0003-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 09:00:00+07', '{"tidur_1":3,"tidur_2":2,"tidur_3":2,"tidur_4":2,"tidur_5":2,"tidur_6":3,"tidur_7":2,"tidur_8":2,"nyeri_1":2,"nyeri_2":3,"nyeri_3":3,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":3,"posisi_2":2,"posisi_3":2,"posisi_4":3,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":3,"kulit_3":2,"kulit_4":3,"kulit_5":2,"kulit_6":2,"kulit_7":3,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":2,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":3,"lingkungan_5":3,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, 'Perkembangan sesuai target', 107, 74.30, 'Baik'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 09:00:00+07', '{"tidur_1":2,"tidur_2":1,"tidur_3":2,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":2,"tidur_8":2,"nyeri_1":2,"nyeri_2":2,"nyeri_3":2,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":1,"posisi_3":2,"posisi_4":1,"posisi_5":2,"posisi_6":1,"kulit_1":2,"kulit_2":2,"kulit_3":2,"kulit_4":2,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":1,"nutrisi_3":1,"nutrisi_4":2,"nutrisi_5":1,"nutrisi_6":1,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":1,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":1,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":1,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 85, 59.00, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":2,"tidur_4":2,"tidur_5":1,"tidur_6":2,"tidur_7":2,"tidur_8":1,"nyeri_1":2,"nyeri_2":2,"nyeri_3":2,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":1,"kulit_3":2,"kulit_4":2,"kulit_5":1,"kulit_6":1,"kulit_7":2,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":2,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":1,"lingkungan_5":1,"lingkungan_6":2,"kolaborasi_1":1,"kolaborasi_2":1,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":1}'::jsonb, NULL, 86, 59.70, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":1,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":2,"tidur_8":2,"nyeri_1":2,"nyeri_2":2,"nyeri_3":1,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":2,"kulit_3":2,"kulit_4":2,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":2,"nutrisi_5":1,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":1,"lingkungan_3":1,"lingkungan_4":2,"lingkungan_5":1,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":1,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 89, 61.80, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000003', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":2,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":2,"tidur_8":2,"nyeri_1":1,"nyeri_2":2,"nyeri_3":1,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":2,"kulit_3":2,"kulit_4":1,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":1,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":1,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 91, 63.20, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-05 09:00:00+07', '{"tidur_1":2,"tidur_2":3,"tidur_3":3,"tidur_4":2,"tidur_5":3,"tidur_6":3,"tidur_7":3,"tidur_8":3,"nyeri_1":3,"nyeri_2":2,"nyeri_3":3,"nyeri_4":3,"nyeri_5":3,"nyeri_6":2,"posisi_1":3,"posisi_2":3,"posisi_3":3,"posisi_4":2,"posisi_5":3,"posisi_6":2,"kulit_1":3,"kulit_2":3,"kulit_3":3,"kulit_4":3,"kulit_5":3,"kulit_6":3,"kulit_7":3,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":3,"nutrisi_6":3,"nutrisi_7":3,"nutrisi_8":3,"lingkungan_1":3,"lingkungan_2":2,"lingkungan_3":3,"lingkungan_4":2,"lingkungan_5":3,"lingkungan_6":3,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":3,"kolaborasi_4":3,"kolaborasi_5":2,"kolaborasi_6":3}'::jsonb, NULL, 130, 90.30, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 09:00:00+07', '{"tidur_1":3,"tidur_2":3,"tidur_3":3,"tidur_4":2,"tidur_5":3,"tidur_6":3,"tidur_7":3,"tidur_8":3,"nyeri_1":3,"nyeri_2":3,"nyeri_3":2,"nyeri_4":3,"nyeri_5":3,"nyeri_6":3,"posisi_1":3,"posisi_2":3,"posisi_3":3,"posisi_4":3,"posisi_5":3,"posisi_6":2,"kulit_1":3,"kulit_2":2,"kulit_3":3,"kulit_4":3,"kulit_5":3,"kulit_6":2,"kulit_7":2,"kulit_8":2,"nutrisi_1":3,"nutrisi_2":3,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":3,"nutrisi_6":3,"nutrisi_7":2,"nutrisi_8":3,"lingkungan_1":3,"lingkungan_2":3,"lingkungan_3":3,"lingkungan_4":3,"lingkungan_5":3,"lingkungan_6":3,"kolaborasi_1":3,"kolaborasi_2":3,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":3,"kolaborasi_6":3}'::jsonb, NULL, 134, 93.10, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-07 09:00:00+07', '{"tidur_1":3,"tidur_2":3,"tidur_3":3,"tidur_4":3,"tidur_5":3,"tidur_6":3,"tidur_7":3,"tidur_8":2,"nyeri_1":3,"nyeri_2":3,"nyeri_3":3,"nyeri_4":2,"nyeri_5":3,"nyeri_6":3,"posisi_1":3,"posisi_2":2,"posisi_3":3,"posisi_4":3,"posisi_5":3,"posisi_6":3,"kulit_1":3,"kulit_2":2,"kulit_3":3,"kulit_4":2,"kulit_5":3,"kulit_6":3,"kulit_7":3,"kulit_8":3,"nutrisi_1":3,"nutrisi_2":3,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":3,"nutrisi_6":3,"nutrisi_7":3,"nutrisi_8":3,"lingkungan_1":3,"lingkungan_2":3,"lingkungan_3":3,"lingkungan_4":3,"lingkungan_5":3,"lingkungan_6":3,"kolaborasi_1":3,"kolaborasi_2":3,"kolaborasi_3":2,"kolaborasi_4":3,"kolaborasi_5":3,"kolaborasi_6":2}'::jsonb, NULL, 137, 95.10, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000004', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-08 09:00:00+07', '{"tidur_1":3,"tidur_2":3,"tidur_3":3,"tidur_4":3,"tidur_5":3,"tidur_6":3,"tidur_7":3,"tidur_8":3,"nyeri_1":3,"nyeri_2":3,"nyeri_3":3,"nyeri_4":3,"nyeri_5":3,"nyeri_6":3,"posisi_1":3,"posisi_2":3,"posisi_3":3,"posisi_4":3,"posisi_5":3,"posisi_6":3,"kulit_1":2,"kulit_2":3,"kulit_3":3,"kulit_4":3,"kulit_5":3,"kulit_6":3,"kulit_7":3,"kulit_8":3,"nutrisi_1":3,"nutrisi_2":3,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":3,"nutrisi_6":3,"nutrisi_7":3,"nutrisi_8":3,"lingkungan_1":3,"lingkungan_2":3,"lingkungan_3":3,"lingkungan_4":3,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":3,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":3,"kolaborasi_5":3,"kolaborasi_6":3}'::jsonb, 'Perkembangan sesuai target', 139, 96.50, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 09:00:00+07', '{"tidur_1":1,"tidur_2":1,"tidur_3":1,"tidur_4":2,"tidur_5":1,"tidur_6":1,"tidur_7":2,"tidur_8":2,"nyeri_1":1,"nyeri_2":1,"nyeri_3":1,"nyeri_4":2,"nyeri_5":1,"nyeri_6":2,"posisi_1":1,"posisi_2":1,"posisi_3":1,"posisi_4":1,"posisi_5":2,"posisi_6":1,"kulit_1":2,"kulit_2":2,"kulit_3":2,"kulit_4":1,"kulit_5":1,"kulit_6":2,"kulit_7":2,"kulit_8":2,"nutrisi_1":1,"nutrisi_2":1,"nutrisi_3":2,"nutrisi_4":1,"nutrisi_5":1,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":1,"lingkungan_1":1,"lingkungan_2":1,"lingkungan_3":1,"lingkungan_4":2,"lingkungan_5":1,"lingkungan_6":1,"kolaborasi_1":1,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":1,"kolaborasi_5":2,"kolaborasi_6":1}'::jsonb, NULL, 67, 46.50, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-06 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":1,"tidur_4":2,"tidur_5":1,"tidur_6":1,"tidur_7":1,"tidur_8":2,"nyeri_1":1,"nyeri_2":1,"nyeri_3":1,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":1,"posisi_5":1,"posisi_6":2,"kulit_1":1,"kulit_2":2,"kulit_3":1,"kulit_4":1,"kulit_5":1,"kulit_6":1,"kulit_7":1,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":1,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":1,"lingkungan_2":1,"lingkungan_3":1,"lingkungan_4":1,"lingkungan_5":2,"lingkungan_6":1,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":1,"kolaborasi_4":1,"kolaborasi_5":1,"kolaborasi_6":1}'::jsonb, NULL, 71, 49.30, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 09:00:00+07', '{"tidur_1":0,"tidur_2":0,"tidur_3":1,"tidur_4":1,"tidur_5":2,"tidur_6":1,"tidur_7":1,"tidur_8":2,"nyeri_1":2,"nyeri_2":2,"nyeri_3":2,"nyeri_4":1,"nyeri_5":1,"nyeri_6":2,"posisi_1":1,"posisi_2":2,"posisi_3":1,"posisi_4":1,"posisi_5":1,"posisi_6":2,"kulit_1":2,"kulit_2":1,"kulit_3":1,"kulit_4":2,"kulit_5":2,"kulit_6":1,"kulit_7":1,"kulit_8":1,"nutrisi_1":2,"nutrisi_2":1,"nutrisi_3":2,"nutrisi_4":2,"nutrisi_5":1,"nutrisi_6":1,"nutrisi_7":2,"nutrisi_8":1,"lingkungan_1":1,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":1,"kolaborasi_3":2,"kolaborasi_4":1,"kolaborasi_5":2,"kolaborasi_6":1}'::jsonb, 'Terdapat item penyimpangan berat — tindakan segera', 69, 47.90, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000005', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 09:00:00+07', '{"tidur_1":2,"tidur_2":0,"tidur_3":0,"tidur_4":2,"tidur_5":1,"tidur_6":2,"tidur_7":1,"tidur_8":2,"nyeri_1":2,"nyeri_2":1,"nyeri_3":1,"nyeri_4":2,"nyeri_5":1,"nyeri_6":2,"posisi_1":1,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":1,"posisi_6":2,"kulit_1":2,"kulit_2":1,"kulit_3":2,"kulit_4":2,"kulit_5":2,"kulit_6":1,"kulit_7":2,"kulit_8":1,"nutrisi_1":2,"nutrisi_2":1,"nutrisi_3":1,"nutrisi_4":1,"nutrisi_5":1,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":1}'::jsonb, 'Terdapat item penyimpangan berat — tindakan segera', 77, 53.50, 'Kurang'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":2,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":2,"tidur_8":2,"nyeri_1":2,"nyeri_2":2,"nyeri_3":2,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":2,"kulit_3":3,"kulit_4":2,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":2,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 97, 67.40, 'Cukup'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-06 09:00:00+07', '{"tidur_1":2,"tidur_2":3,"tidur_3":2,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":3,"tidur_8":2,"nyeri_1":2,"nyeri_2":2,"nyeri_3":2,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":3,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":2,"kulit_3":2,"kulit_4":2,"kulit_5":2,"kulit_6":2,"kulit_7":2,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":3,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":3,"nutrisi_6":3,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":3,"lingkungan_5":3,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 106, 73.60, 'Baik'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-07 09:00:00+07', '{"tidur_1":3,"tidur_2":2,"tidur_3":3,"tidur_4":2,"tidur_5":2,"tidur_6":3,"tidur_7":3,"tidur_8":3,"nyeri_1":2,"nyeri_2":2,"nyeri_3":2,"nyeri_4":2,"nyeri_5":2,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":2,"posisi_6":2,"kulit_1":2,"kulit_2":3,"kulit_3":3,"kulit_4":2,"kulit_5":3,"kulit_6":2,"kulit_7":2,"kulit_8":2,"nutrisi_1":3,"nutrisi_2":2,"nutrisi_3":2,"nutrisi_4":2,"nutrisi_5":2,"nutrisi_6":3,"nutrisi_7":2,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":3,"lingkungan_3":3,"lingkungan_4":3,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":3,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":2}'::jsonb, NULL, 110, 76.40, 'Baik'),
+('cccccccc-0003-0003-0003-000000000006', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":3,"tidur_4":2,"tidur_5":3,"tidur_6":2,"tidur_7":3,"tidur_8":2,"nyeri_1":3,"nyeri_2":2,"nyeri_3":2,"nyeri_4":2,"nyeri_5":3,"nyeri_6":2,"posisi_1":2,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":3,"posisi_6":3,"kulit_1":3,"kulit_2":3,"kulit_3":2,"kulit_4":3,"kulit_5":2,"kulit_6":2,"kulit_7":3,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":2,"nutrisi_3":3,"nutrisi_4":2,"nutrisi_5":2,"nutrisi_6":3,"nutrisi_7":3,"nutrisi_8":2,"lingkungan_1":3,"lingkungan_2":3,"lingkungan_3":3,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":2,"kolaborasi_1":2,"kolaborasi_2":2,"kolaborasi_3":3,"kolaborasi_4":2,"kolaborasi_5":2,"kolaborasi_6":3}'::jsonb, 'Perkembangan sesuai target', 115, 79.90, 'Baik'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-07-05 09:00:00+07', '{"tidur_1":3,"tidur_2":3,"tidur_3":3,"tidur_4":2,"tidur_5":3,"tidur_6":2,"tidur_7":3,"tidur_8":3,"nyeri_1":3,"nyeri_2":2,"nyeri_3":2,"nyeri_4":3,"nyeri_5":2,"nyeri_6":2,"posisi_1":3,"posisi_2":2,"posisi_3":2,"posisi_4":2,"posisi_5":3,"posisi_6":3,"kulit_1":3,"kulit_2":2,"kulit_3":3,"kulit_4":3,"kulit_5":3,"kulit_6":3,"kulit_7":2,"kulit_8":3,"nutrisi_1":2,"nutrisi_2":3,"nutrisi_3":2,"nutrisi_4":2,"nutrisi_5":2,"nutrisi_6":3,"nutrisi_7":2,"nutrisi_8":3,"lingkungan_1":3,"lingkungan_2":3,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":3,"lingkungan_6":2,"kolaborasi_1":3,"kolaborasi_2":3,"kolaborasi_3":2,"kolaborasi_4":3,"kolaborasi_5":3,"kolaborasi_6":2}'::jsonb, NULL, 123, 85.40, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-06 09:00:00+07', '{"tidur_1":2,"tidur_2":3,"tidur_3":2,"tidur_4":3,"tidur_5":3,"tidur_6":3,"tidur_7":2,"tidur_8":2,"nyeri_1":2,"nyeri_2":3,"nyeri_3":2,"nyeri_4":3,"nyeri_5":2,"nyeri_6":3,"posisi_1":2,"posisi_2":2,"posisi_3":3,"posisi_4":2,"posisi_5":2,"posisi_6":3,"kulit_1":3,"kulit_2":2,"kulit_3":3,"kulit_4":2,"kulit_5":2,"kulit_6":3,"kulit_7":3,"kulit_8":2,"nutrisi_1":2,"nutrisi_2":3,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":2,"nutrisi_6":2,"nutrisi_7":3,"nutrisi_8":2,"lingkungan_1":2,"lingkungan_2":3,"lingkungan_3":3,"lingkungan_4":3,"lingkungan_5":3,"lingkungan_6":3,"kolaborasi_1":3,"kolaborasi_2":3,"kolaborasi_3":3,"kolaborasi_4":3,"kolaborasi_5":3,"kolaborasi_6":2}'::jsonb, NULL, 123, 85.40, 'Sangat Baik'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-07-07 09:00:00+07', '{"tidur_1":2,"tidur_2":3,"tidur_3":2,"tidur_4":2,"tidur_5":3,"tidur_6":3,"tidur_7":2,"tidur_8":2,"nyeri_1":3,"nyeri_2":2,"nyeri_3":2,"nyeri_4":3,"nyeri_5":2,"nyeri_6":2,"posisi_1":3,"posisi_2":3,"posisi_3":3,"posisi_4":3,"posisi_5":3,"posisi_6":2,"kulit_1":3,"kulit_2":2,"kulit_3":2,"kulit_4":3,"kulit_5":2,"kulit_6":3,"kulit_7":2,"kulit_8":2,"nutrisi_1":3,"nutrisi_2":2,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":3,"nutrisi_6":3,"nutrisi_7":3,"nutrisi_8":3,"lingkungan_1":2,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":3,"lingkungan_6":3,"kolaborasi_1":2,"kolaborasi_2":3,"kolaborasi_3":3,"kolaborasi_4":3,"kolaborasi_5":3,"kolaborasi_6":2}'::jsonb, NULL, 122, 84.70, 'Baik'),
+('cccccccc-0003-0003-0003-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-07-08 09:00:00+07', '{"tidur_1":2,"tidur_2":2,"tidur_3":3,"tidur_4":2,"tidur_5":2,"tidur_6":2,"tidur_7":2,"tidur_8":3,"nyeri_1":3,"nyeri_2":3,"nyeri_3":3,"nyeri_4":2,"nyeri_5":3,"nyeri_6":3,"posisi_1":3,"posisi_2":3,"posisi_3":3,"posisi_4":3,"posisi_5":3,"posisi_6":2,"kulit_1":3,"kulit_2":3,"kulit_3":2,"kulit_4":2,"kulit_5":3,"kulit_6":3,"kulit_7":2,"kulit_8":3,"nutrisi_1":3,"nutrisi_2":2,"nutrisi_3":3,"nutrisi_4":3,"nutrisi_5":3,"nutrisi_6":2,"nutrisi_7":3,"nutrisi_8":2,"lingkungan_1":3,"lingkungan_2":2,"lingkungan_3":2,"lingkungan_4":2,"lingkungan_5":2,"lingkungan_6":3,"kolaborasi_1":3,"kolaborasi_2":2,"kolaborasi_3":2,"kolaborasi_4":2,"kolaborasi_5":3,"kolaborasi_6":3}'::jsonb, 'Perkembangan sesuai target', 123, 85.40, 'Sangat Baik');
+
+-- ── AUDIT LOG (sample entries) ───────────────────────────────────────────
+INSERT INTO audit_logs (user_id, action, table_name, record_id, ip_address, details) VALUES
+('aaaaaaaa-0001-0001-0001-000000000002', 'LOGIN', NULL, NULL, '10.0.0.21', NULL),
+('aaaaaaaa-0001-0001-0001-000000000004', 'LOGIN', NULL, NULL, '10.0.0.30', NULL),
+('aaaaaaaa-0001-0001-0001-000000000001', 'CREATE', 'users', 'aaaaaaaa-0001-0001-0001-000000000005', '10.0.0.10', '{"role": "perawat"}'),
+('aaaaaaaa-0001-0001-0001-000000000004', 'EXPORT', 'babies', 'cccccccc-0003-0003-0003-000000000003', '10.0.0.30', '{"format": "pdf"}');
+
+COMMIT;
+

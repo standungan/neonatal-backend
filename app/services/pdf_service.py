@@ -164,8 +164,8 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
     shade = False
     inv_rows = [
         ("Total Sesi",               str(s.total_sessions)),
-        ("Rata-rata Skor",           f"{s.avg_skor:.1f} / 100" if s.avg_skor else "-"),
-        ("Skor Terakhir",            f"{s.latest_skor} / 100  ({s.latest_kategori})" if s.latest_skor is not None else "-"),
+        ("Rata-rata Skor",           f"{s.avg_percentage:.1f}%" if s.avg_percentage is not None else "-"),
+        ("Skor Terakhir",            f"{s.latest_percentage:.1f}%  ({s.latest_category})" if s.latest_percentage is not None else "-"),
         ("Rata-rata Durasi Menyusui", f"{s.avg_durasi_menyusui:.1f} menit" if s.avg_durasi_menyusui else "-"),
         ("Rata-rata Durasi Interaksi", f"{s.avg_durasi_interaksi:.1f} menit" if s.avg_durasi_interaksi else "-"),
     ]
@@ -174,23 +174,13 @@ def generate_pdf(report: BabyReportResponse) -> bytes:
         shade = not shade
     pdf.ln(4)
 
-    # ── Pillar 8 domain breakdown (latest assessment) ──────────────────────────
+    # ── Pillar 6 item breakdown (latest assessment) ────────────────────────────
     if report.involvement_history:
         latest = report.involvement_history[0]
-        pdf.section_title("6. Rincian Keterlibatan (8 Domain FICare)")
+        pdf.section_title("6. Rincian Keterlibatan (Pilar 6 - Kerjasama dengan Keluarga)")
         shade = False
-        domains = [
-            ("Kehadiran (Presence)",            latest.presence_score),
-            ("Interaksi Fisik",                 latest.physical_interaction_score),
-            ("Partisipasi Menyusui",            latest.feeding_participation_score),
-            ("Partisipasi Perawatan",           latest.care_participation_score),
-            ("Pemahaman Kondisi",               latest.knowledge_score),
-            ("Komunikasi Klinis",               latest.communication_score),
-            ("Kesiapan Emosional",              latest.emotional_readiness_score),
-            ("Kesiapan Pulang",                 latest.discharge_readiness_score),
-        ]
-        for label, val in domains:
-            pdf.kv_row(label, f"{val} / 4" if val is not None else "-", shade)
+        for item in latest.items:
+            pdf.kv_row(item.text, f"{item.score} / {item.max}", shade)
             shade = not shade
 
     buf = BytesIO()
