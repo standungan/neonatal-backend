@@ -38,6 +38,15 @@ INV_ITEM_CODES = icat.ALL_ITEM_CODES        # keluarga_1..6
 INV_MAX_TOTAL = icat.MAX_TOTAL              # 18
 inv_category_for = icat.category_for
 
+# aksi = Pillar 8 "Kolaborasi Interprofesional" (6 items, 0–3)
+AKSI_CATALOG_PY = ROOT / "backend" / "app" / "services" / "aksi_catalog.py"
+_aspec = importlib.util.spec_from_file_location("aksi_catalog", AKSI_CATALOG_PY)
+acat = importlib.util.module_from_spec(_aspec)
+_aspec.loader.exec_module(acat)
+AKSI_ITEM_CODES = acat.ALL_ITEM_CODES       # kolaborasi_1..6
+AKSI_MAX_TOTAL = acat.MAX_TOTAL             # 18
+aksi_category_for = acat.category_for
+
 TZ7 = timezone(timedelta(hours=7))
 
 # bcrypt hash of "Password123!" (reused from the original seed)
@@ -239,7 +248,7 @@ w()
 w("BEGIN;")
 w()
 w("-- Idempotent: clear existing rows (children first) before reseeding.")
-w("TRUNCATE TABLE audit_logs, observations, parent_involvement_records,")
+w("TRUNCATE TABLE audit_logs, aksi_records, observations, parent_involvement_records,")
 w("    monitoring_records, baby_incubator_assignments, parents, babies,")
 w("    incubators, users RESTART IDENTITY CASCADE;")
 w()
@@ -356,9 +365,9 @@ w(",\n".join(inv_rows) + ";")
 w()
 
 # ── observations ──
-w("-- ── OBSERVATIONS (8-pillar instrument, 48 items scored 0–3; daily) ───────")
-w("--   scores JSONB is the full 48-item map; total_score/percentage/category")
-w("--   are precomputed to match the backend (total/144*100, category bands).")
+w("-- ── OBSERVATIONS (Monitoring Bayi, 6 pillars / 42 items scored 0–3; daily) ─")
+w("--   scores JSONB is the full 42-item map; total_score/percentage/category")
+w("--   are precomputed to match the backend (total/126*100, category bands).")
 w("INSERT INTO observations")
 w("    (baby_id, recorded_by, observation_time, scores, catatan, total_score, percentage, category) VALUES")
 obs_rows = []
@@ -383,6 +392,33 @@ for b in BABIES:
             f"('{b['id']}', '{nurse}', '{ts}', '{js}'::jsonb, {q(note)}, {total}, {pct:.2f}, {q(catg)})"
         )
 w(",\n".join(obs_rows) + ";")
+w()
+
+# ── aksi (Menu Aksi — Kolaborasi Interprofesional; 6 items 0–3) ──
+w("-- ── AKSI RECORDS — Kolaborasi Interprofesional (6 items 0–3; %=total/18*100) ─")
+w("INSERT INTO aksi_records")
+w("    (baby_id, recorded_by, observation_time, scores, catatan, total_score, percentage, category) VALUES")
+aksi_rows = []
+aksi_days = DAYS + [LAST_DAY]
+for b in BABIES:
+    rng = rng_for("aksi", b["id"])
+    for di, day in enumerate(aksi_days):
+        t = di / (len(aksi_days) - 1)
+        avg = lerp(b["q0"], b["q1"], t)   # collaboration quality tracks overall care quality
+        scores = {}
+        for code in AKSI_ITEM_CODES:
+            v = round(avg + rng.uniform(-0.55, 0.55))
+            scores[code] = max(0, min(3, v))
+        total = sum(scores.values())
+        pct = round(total / AKSI_MAX_TOTAL * 100, 1)
+        catg = aksi_category_for(pct)
+        js = json.dumps(scores, separators=(",", ":"))
+        ts = sql_ts(dt(day, 13))
+        nurse = rng.choice(NURSES)
+        aksi_rows.append(
+            f"('{b['id']}', '{nurse}', '{ts}', '{js}'::jsonb, NULL, {total}, {pct:.1f}, {q(catg)})"
+        )
+w(",\n".join(aksi_rows) + ";")
 w()
 
 # ── a few audit-log samples ──
@@ -410,7 +446,7 @@ target.write_text(sql, encoding="utf-8")
 # ── summary to stderr for review ─────────────────────────────────────────────
 print(f"WROTE {target}")
 print(f"users=6 incubators={len(INCUBATORS)} babies={len(BABIES)+1}")
-print(f"monitoring_rows={len(mon_rows)} involvement_rows={len(inv_rows)} observation_rows={len(obs_rows)}")
+print(f"monitoring_rows={len(mon_rows)} involvement_rows={len(inv_rows)} observation_rows={len(obs_rows)} aksi_rows={len(aksi_rows)}")
 print(f"MAX_TOTAL={MAX_TOTAL} n_item_codes={len(ALL_ITEM_CODES)} slots_per_baby={N_SLOTS}")
 # show observation category spread
 print("obs sample (baby, day-index -> pct/category):")

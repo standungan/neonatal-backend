@@ -1,13 +1,14 @@
 """
 Instrumen Observasi Perawatan Bayi Prematur — Delapan Pilar.
 
-Catalog of the observation items across 7 pillars (48 items), each scored 0–3
+Catalog of the observation items across 6 pillars (42 items), each scored 0–3
 (3 = sesuai standar … 0 = penyimpangan berat, tindakan segera). This module is
 the single source of truth; the API serves it to clients.
 
-Note: "Kerjasama dengan Keluarga" is intentionally NOT part of this clinical
-instrument — family collaboration is covered by the separate Keterlibatan Orang
-Tua (parent involvement) module.
+Note: two pillars are intentionally NOT part of this clinical instrument, each
+covered by its own separate module:
+  - "Kerjasama dengan Keluarga"     → Keterlibatan Orang Tua (involvement).
+  - "Kolaborasi Interprofesional"   → Aksi (aksi module).
 """
 
 # Each pillar: key, human label, and its ordered items as (item_code, text).
@@ -92,18 +93,6 @@ PILLARS: list[dict] = [
             "Lingkungan sekitar bersih dan nyaman",
         ],
     },
-    {
-        "key": "kolaborasi",
-        "label": "Kolaborasi Interprofesional",
-        "items": [
-            "Catatan CPPT lengkap",
-            "SBAR dilakukan saat handover",
-            "Instruksi dokter terdokumentasi",
-            "Perubahan kondisi bayi segera dilaporkan",
-            "Kolaborasi dokter-perawat berjalan baik",
-            "Seluruh tindakan terdokumentasi",
-        ],
-    },
 ]
 
 MAX_PER_ITEM = 3
@@ -121,8 +110,8 @@ for _p in PILLARS:
         ITEM_TO_PILLAR[_code] = _p["key"]
 
 ALL_ITEM_CODES: list[str] = [c["item_code"] for c in CATALOG]
-TOTAL_ITEMS = len(ALL_ITEM_CODES)                 # 54
-MAX_TOTAL = TOTAL_ITEMS * MAX_PER_ITEM            # 162
+TOTAL_ITEMS = len(ALL_ITEM_CODES)                 # 42
+MAX_TOTAL = TOTAL_ITEMS * MAX_PER_ITEM            # 126
 
 
 def category_for(percentage: float) -> str:

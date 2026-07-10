@@ -5,6 +5,8 @@ from app.models.parent import Parent
 from app.models.assignment import BabyIncubatorAssignment
 from app.models.monitoring import MonitoringRecord
 from app.models.involvement import ParentInvolvementRecord
+from app.models.observation import Observation
+from app.models.aksi import AksiRecord
 from app.models.audit import AuditLog
 
 __all__ = [
@@ -15,5 +17,7 @@ __all__ = [
     "BabyIncubatorAssignment",
     "MonitoringRecord",
     "ParentInvolvementRecord",
+    "Observation",
+    "AksiRecord",
     "AuditLog",
 ]

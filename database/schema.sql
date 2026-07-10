@@ -173,7 +173,26 @@ CREATE TABLE observations (
     observation_time    TIMESTAMPTZ NOT NULL,
     scores              JSONB NOT NULL DEFAULT '{}'::jsonb,   -- { item_code: 0..3 }
     catatan             TEXT,
-    total_score         INTEGER NOT NULL DEFAULT 0,           -- 0..162
+    total_score         INTEGER NOT NULL DEFAULT 0,           -- 0..126 (6 pillars × 42 items)
+    percentage          NUMERIC(5, 2) NOT NULL DEFAULT 0,     -- 0..100
+    category            VARCHAR(30),                          -- Sangat Baik … Sangat Kurang
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
+-- TABLE: aksi_records
+-- Menu Aksi = PILAR 8 "Kolaborasi Interprofesional" (6 items, 0–3), pulled out
+-- of the Monitoring Bayi instrument. Item scores stored as JSONB { item_code: 0..3 }.
+-- =============================================================================
+
+CREATE TABLE aksi_records (
+    aksi_id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    baby_id             UUID NOT NULL REFERENCES babies(baby_id),
+    recorded_by         UUID NOT NULL REFERENCES users(id),
+    observation_time    TIMESTAMPTZ NOT NULL,
+    scores              JSONB NOT NULL DEFAULT '{}'::jsonb,   -- { item_code: 0..3 }
+    catatan             TEXT,
+    total_score         INTEGER NOT NULL DEFAULT 0,           -- 0..18
     percentage          NUMERIC(5, 2) NOT NULL DEFAULT 0,     -- 0..100
     category            VARCHAR(30),                          -- Sangat Baik … Sangat Kurang
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -208,6 +227,9 @@ CREATE INDEX idx_involvement_baby_time   ON parent_involvement_records (baby_id,
 
 -- observations — queried by baby + time
 CREATE INDEX idx_observation_baby_time   ON observations (baby_id, observation_time DESC);
+
+-- aksi_records — queried by baby + time
+CREATE INDEX idx_aksi_baby_time          ON aksi_records (baby_id, observation_time DESC);
 
 -- assignments — find active assignment for a baby or incubator quickly
 CREATE INDEX idx_assignment_baby         ON baby_incubator_assignments (baby_id);
