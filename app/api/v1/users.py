@@ -3,9 +3,15 @@ import uuid
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import AdminOnly
+from app.api.deps import AdminOnly, PerawatOrAdmin
 from app.core.database import get_db
-from app.schemas.user import PasswordResetRequest, UserCreate, UserResponse, UserUpdate
+from app.schemas.user import (
+    PasswordResetRequest,
+    UserCreate,
+    UserOption,
+    UserResponse,
+    UserUpdate,
+)
 from app.services import user_service
 
 router = APIRouter()
@@ -17,6 +23,16 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
 ):
     return await user_service.get_all_users(db)
+
+
+# NOTE: must be declared before "/{user_id}" so it isn't captured as a user id.
+@router.get("/doctors", response_model=list[UserOption])
+async def list_doctors(
+    current_user: PerawatOrAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    """Active doctors for the DPJP dropdown (accessible to nurses + admin)."""
+    return await user_service.get_doctors(db)
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

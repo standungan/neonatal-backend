@@ -24,6 +24,13 @@ class UserRepository:
         )
         return list(result.scalars().all())
 
+    async def get_by_role(self, role: str, active_only: bool = True) -> list[User]:
+        stmt = select(User).where(User.role == role)
+        if active_only:
+            stmt = stmt.where(User.is_active == True)  # noqa: E712
+        result = await self.db.execute(stmt.order_by(User.full_name))
+        return list(result.scalars().all())
+
     async def create(self, user: User) -> User:
         self.db.add(user)
         await self.db.flush()

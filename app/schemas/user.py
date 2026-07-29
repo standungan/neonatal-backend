@@ -33,3 +33,11 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class UserOption(BaseModel):
+    """Minimal user info for dropdowns (e.g. DPJP picker on registration)."""
+    id: uuid.UUID
+    full_name: str
+
+    model_config = {"from_attributes": True}

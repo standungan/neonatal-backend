@@ -6,7 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import hash_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
-from app.schemas.user import PasswordResetRequest, UserCreate, UserResponse, UserUpdate
+from app.schemas.user import (
+    PasswordResetRequest,
+    UserCreate,
+    UserOption,
+    UserResponse,
+    UserUpdate,
+)
 from app.services.audit_service import log_action
 
 
@@ -14,6 +20,12 @@ async def get_all_users(db: AsyncSession) -> list[UserResponse]:
     repo = UserRepository(db)
     users = await repo.get_all()
     return [UserResponse.model_validate(u) for u in users]
+
+
+async def get_doctors(db: AsyncSession) -> list[UserOption]:
+    """Active doctors — for the DPJP dropdown on baby registration."""
+    doctors = await UserRepository(db).get_by_role("dokter", active_only=True)
+    return [UserOption.model_validate(u) for u in doctors]
 
 
 async def get_user(user_id: uuid.UUID, db: AsyncSession) -> UserResponse:
