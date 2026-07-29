@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,8 +32,20 @@ class BabyIncubatorAssignment(Base):
         nullable=False,
         default="active",
     )
+    # ── registration / admission data (updates02) ──────────────────────────────
+    # assigned_at = tanggal masuk NICU · assigned_by = perawat penerima ·
+    # incubator_id = nomor inkubator. These add the rest of "Data Registrasi".
+    no_registrasi_nicu: Mapped[str | None] = mapped_column(String(30), unique=True)
+    rumah_sakit: Mapped[str | None] = mapped_column(String(150))
+    ruang_nicu: Mapped[str | None] = mapped_column(String(100))
+    dpjp_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
 
     # relationships
     baby: Mapped["Baby"] = relationship(back_populates="assignments")
     incubator: Mapped["Incubator"] = relationship(back_populates="assignments")
-    assigned_by_user: Mapped["User"] = relationship(back_populates="assignments")
+    assigned_by_user: Mapped["User"] = relationship(
+        back_populates="assignments", foreign_keys=[assigned_by]
+    )
+    dpjp: Mapped["User"] = relationship(foreign_keys=[dpjp_id])

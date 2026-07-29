@@ -37,12 +37,16 @@ class BabyRepository:
             .where(Baby.baby_id == baby_id)
             .options(
                 selectinload(Baby.parent),
+                selectinload(Baby.maternal_record),
                 selectinload(Baby.assignments.and_(
                     BabyIncubatorAssignment.status == "active"
                 )).selectinload(BabyIncubatorAssignment.incubator),
                 selectinload(Baby.assignments.and_(
                     BabyIncubatorAssignment.status == "active"
                 )).selectinload(BabyIncubatorAssignment.assigned_by_user),
+                selectinload(Baby.assignments.and_(
+                    BabyIncubatorAssignment.status == "active"
+                )).selectinload(BabyIncubatorAssignment.dpjp),
             )
         )
         return result.scalar_one_or_none()

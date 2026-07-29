@@ -1,8 +1,8 @@
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, Numeric, SmallInteger, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, Numeric, SmallInteger, String, Text, Time, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,6 +25,15 @@ class Baby(Base):
     gestational_age: Mapped[int | None] = mapped_column(SmallInteger)        # weeks
     birth_type: Mapped[str | None] = mapped_column(String(100))
     clinical_notes: Mapped[str | None] = mapped_column(Text)
+    # ── extended identity (updates02) ──────────────────────────────────────────
+    no_rm_bayi: Mapped[str | None] = mapped_column(String(50))
+    jam_lahir: Mapped[time | None] = mapped_column(Time)
+    usia_masuk_nicu_jam: Mapped[int | None] = mapped_column(SmallInteger)     # hours
+    lingkar_kepala: Mapped[Decimal | None] = mapped_column(Numeric(4, 1))     # cm
+    lingkar_dada: Mapped[Decimal | None] = mapped_column(Numeric(4, 1))       # cm
+    golongan_darah: Mapped[str | None] = mapped_column(
+        Enum("A", "B", "AB", "O", name="blood_type")
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -35,6 +44,9 @@ class Baby(Base):
 
     # relationships
     parent: Mapped["Parent"] = relationship(back_populates="baby", uselist=False)
+    maternal_record: Mapped["MaternalRecord"] = relationship(
+        back_populates="baby", uselist=False
+    )
     assignments: Mapped[list["BabyIncubatorAssignment"]] = relationship(back_populates="baby")
     monitoring_records: Mapped[list["MonitoringRecord"]] = relationship(
         back_populates="baby", order_by="MonitoringRecord.observation_time.desc()"

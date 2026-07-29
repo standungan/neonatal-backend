@@ -229,6 +229,121 @@ MON_NOTES = {
 }
 KONDISI = ["Tenang", "Aktif", "Rewel", "Tidur"]
 
+# ── updates02: maternal record + expanded NICU intake ─────────────────────────
+BLOOD = ["O", "A", "B", "AB", "O", "A", "B", "O"]
+EDU = ["sma", "diploma", "s1", "s1", "smp", "s2", "sma", "sma"]
+JOBS = ["Ibu Rumah Tangga", "Guru", "Karyawan Swasta", "Wiraswasta", "PNS", "Perawat", "Pedagang", "Ibu Rumah Tangga"]
+INC_LOC = {i: loc for i, no, loc, st in INCUBATORS}
+
+
+def qb(v):   # boolean literal or NULL
+    return "NULL" if v is None else ("TRUE" if v else "FALSE")
+
+
+def qi(v):   # int literal or NULL
+    return "NULL" if v is None else str(v)
+
+
+def qjson(v):  # JSONB array literal or NULL
+    return "NULL" if v is None else "'" + json.dumps(v, ensure_ascii=False).replace("'", "''") + "'::jsonb"
+
+
+def baby_extra(b, idx):
+    """Extended baby identity fields (updates02), derived deterministically."""
+    rng = rng_for("babyx", b["id"])
+    return dict(
+        no_rm_bayi=f"RM-B-{idx:04d}",
+        jam_lahir=f"{rng.randint(0, 23):02d}:{rng.choice([0, 15, 30, 45]):02d}:00",
+        usia_masuk_nicu_jam=rng.randint(2, 12),
+        lingkar_kepala=round(b["bl"] * 0.62, 1),
+        lingkar_dada=round(b["bl"] * 0.58, 1),
+        golongan_darah=BLOOD[(idx - 1) % len(BLOOD)],
+    )
+
+
+def gen_maternal(b, idx):
+    """Mother's structured medical record — coherent with the baby's profile."""
+    rng = rng_for("maternal", b["id"])
+    mh = (b.get("mhist") or "").lower()
+    state = b.get("state", "stable")
+    preek = "preeklam" in mh
+    hipert = "hipertensi" in mh
+    dm = "diabetes" in mh
+    kpd = "kpd" in mh or "ketuban" in mh
+    indikasi = []
+    if preek: indikasi.append("Preeklamsia")
+    if kpd: indikasi.append("Ketuban pecah dini (PPROM)")
+    if dm: indikasi.append("Diabetes gestasional")
+    if state in ("warning", "critical") and not indikasi:
+        indikasi.append("Persalinan prematur spontan")
+    komplikasi = ["Perdarahan"] if state == "critical" else (["Tidak ada komplikasi"] if state == "stable" else [])
+    apgar1 = {"critical": 4, "warning": 6, "improving": 6, "stable": 7}.get(state, 7)
+    return dict(
+        no_rm_ibu=f"RM-I-{idx:04d}", umur_ibu=rng.randint(21, 38),
+        pendidikan=EDU[(idx - 1) % len(EDU)], pekerjaan=JOBS[(idx - 1) % len(JOBS)],
+        alamat=f"Jl. Contoh No. {idx * 3}, Kota", golongan_darah=BLOOD[(idx - 1) % len(BLOOD)],
+        kehamilan_ke=rng.randint(1, 4), jumlah_persalinan_hidup=rng.randint(0, 2),
+        riwayat_abortus=rng.random() < 0.2,
+        riwayat_prematur=state in ("warning", "critical") or rng.random() < 0.2,
+        riwayat_bblr=rng.random() < 0.25, riwayat_bayi_meninggal=rng.random() < 0.1,
+        usia_kehamilan_lahir=b["ga"], jenis_kehamilan="tunggal",
+        anc_rutin=rng.random() < 0.85, jumlah_anc=rng.randint(2, 8),
+        hipertensi_kehamilan=hipert or preek, preeklamsia=preek, diabetes_gestasional=dm,
+        infeksi_hamil=rng.random() < 0.15, perdarahan_hamil=state == "critical",
+        ketuban_pecah_dini=kpd, merokok=False, paparan_asap_rokok=rng.random() < 0.3,
+        konsumsi_alkohol=False, obat_tertentu=False, obat_tertentu_ket=None,
+        tanggal_persalinan=b["bd"],
+        jenis_persalinan="sc" if b["btype"].upper() == "SC" else "normal",
+        tempat_persalinan="RSUD Kota Sehat",
+        indikasi_prematur=indikasi or None, indikasi_prematur_lainnya=None,
+        komplikasi_persalinan=komplikasi or None, komplikasi_lainnya=None,
+        apgar_menit_1=apgar1, apgar_menit_5=min(apgar1 + 2, 9),
+        kondisi_umum={"critical": "buruk", "warning": "cukup"}.get(state, "baik"),
+        masih_dirawat=state in ("warning", "critical"), komplikasi_postpartum=state == "critical",
+        dapat_berjalan=state != "critical", dapat_menyusui=state in ("stable", "improving"),
+    )
+
+
+# maternal-record column order (must match the INSERT below)
+_MAT_COLS = [
+    "no_rm_ibu", "umur_ibu", "pendidikan", "pekerjaan", "alamat", "golongan_darah",
+    "kehamilan_ke", "jumlah_persalinan_hidup", "riwayat_abortus", "riwayat_prematur",
+    "riwayat_bblr", "riwayat_bayi_meninggal", "usia_kehamilan_lahir", "jenis_kehamilan",
+    "anc_rutin", "jumlah_anc", "hipertensi_kehamilan", "preeklamsia", "diabetes_gestasional",
+    "infeksi_hamil", "perdarahan_hamil", "ketuban_pecah_dini", "merokok", "paparan_asap_rokok",
+    "konsumsi_alkohol", "obat_tertentu", "obat_tertentu_ket", "tanggal_persalinan",
+    "jenis_persalinan", "tempat_persalinan", "indikasi_prematur", "indikasi_prematur_lainnya",
+    "komplikasi_persalinan", "komplikasi_lainnya", "apgar_menit_1", "apgar_menit_5",
+    "kondisi_umum", "masih_dirawat", "komplikasi_postpartum", "dapat_berjalan", "dapat_menyusui",
+]
+_MAT_BOOL = {
+    "riwayat_abortus", "riwayat_prematur", "riwayat_bblr", "riwayat_bayi_meninggal", "anc_rutin",
+    "hipertensi_kehamilan", "preeklamsia", "diabetes_gestasional", "infeksi_hamil", "perdarahan_hamil",
+    "ketuban_pecah_dini", "merokok", "paparan_asap_rokok", "konsumsi_alkohol", "obat_tertentu",
+    "masih_dirawat", "komplikasi_postpartum", "dapat_berjalan", "dapat_menyusui",
+}
+_MAT_INT = {
+    "umur_ibu", "kehamilan_ke", "jumlah_persalinan_hidup", "usia_kehamilan_lahir",
+    "jumlah_anc", "apgar_menit_1", "apgar_menit_5",
+}
+_MAT_JSON = {"indikasi_prematur", "komplikasi_persalinan"}
+
+
+def mat_value(col, v):
+    if col in _MAT_BOOL: return qb(v)
+    if col in _MAT_INT: return qi(v)
+    if col in _MAT_JSON: return qjson(v)
+    return q(v)
+
+
+# assign index + extra fields to every baby (active + discharged)
+_ALL_BABIES = list(enumerate(BABIES, start=1)) + [(len(BABIES) + 1, DISCHARGED)]
+for _idx, _b in _ALL_BABIES:
+    _b["_idx"] = _idx
+    _b["_x"] = baby_extra(_b, _idx)
+    _b["_mat"] = gen_maternal(_b, _idx)
+
+
 # ── build SQL ────────────────────────────────────────────────────────────────
 out = []
 def w(s=""): out.append(s)
@@ -249,7 +364,7 @@ w("BEGIN;")
 w()
 w("-- Idempotent: clear existing rows (children first) before reseeding.")
 w("TRUNCATE TABLE audit_logs, aksi_records, observations, parent_involvement_records,")
-w("    monitoring_records, baby_incubator_assignments, parents, babies,")
+w("    monitoring_records, baby_incubator_assignments, maternal_records, parents, babies,")
 w("    incubators, users RESTART IDENTITY CASCADE;")
 w()
 
@@ -277,14 +392,18 @@ w()
 
 # ── babies ──
 w("-- ── BABIES ───────────────────────────────────────────────────────────────")
-w("INSERT INTO babies (baby_id, baby_name, gender, birth_date, birth_weight, birth_length, gestational_age, birth_type, is_active) VALUES")
+w("INSERT INTO babies (baby_id, baby_name, gender, birth_date, birth_weight, birth_length, "
+  "gestational_age, birth_type, no_rm_bayi, jam_lahir, usia_masuk_nicu_jam, lingkar_kepala, "
+  "lingkar_dada, golongan_darah, is_active) VALUES")
 rows = []
-for b in BABIES:
+for b in BABIES + [DISCHARGED]:
+    x = b["_x"]
+    active = "FALSE" if b is DISCHARGED else "TRUE"
     rows.append(f"('{b['id']}', {q(b['name'])}, '{b['gender']}', '{b['bd']}', "
-                f"{b['bw']:.2f}, {b['bl']:.1f}, {b['ga']}, {q(b['btype'])}, TRUE)")
+                f"{b['bw']:.2f}, {b['bl']:.1f}, {b['ga']}, {q(b['btype'])}, "
+                f"{q(x['no_rm_bayi'])}, '{x['jam_lahir']}', {x['usia_masuk_nicu_jam']}, "
+                f"{x['lingkar_kepala']:.1f}, {x['lingkar_dada']:.1f}, '{x['golongan_darah']}', {active})")
 d = DISCHARGED
-rows.append(f"('{d['id']}', {q(d['name'])}, '{d['gender']}', '{d['bd']}', "
-            f"{d['bw']:.2f}, {d['bl']:.1f}, {d['ga']}, {q(d['btype'])}, FALSE)")
 w(",\n".join(rows) + ";")
 w()
 
@@ -298,13 +417,32 @@ w(",\n".join(rows) + ";")
 w()
 
 # ── assignments ──
-w("-- ── BABY ↔ INCUBATOR ASSIGNMENTS ─────────────────────────────────────────")
-w("INSERT INTO baby_incubator_assignments (baby_id, incubator_id, assigned_by, assigned_at, discharged_at, status) VALUES")
+w("-- ── BABY ↔ INCUBATOR ASSIGNMENTS (+ registration data, updates02) ─────────")
+w("INSERT INTO baby_incubator_assignments (baby_id, incubator_id, assigned_by, assigned_at, "
+  "discharged_at, status, no_registrasi_nicu, rumah_sakit, ruang_nicu, dpjp_id) VALUES")
+DOKS = [U_DOK1, U_DOK2]
 rows = []
 for b in BABIES:
     assigned = f"{b['bd']} 08:00:00+07"
-    rows.append(f"('{b['id']}', '{b['inc']}', '{b['nurse']}', '{assigned}', NULL, 'active')")
-rows.append(f"('{d['id']}', '{d['inc']}', '{d['nurse']}', '{d['admitted']}', '{d['discharged']}', 'discharged')")
+    idx = b["_idx"]
+    reg = f"NICU-2026-{idx:04d}"
+    dpjp = DOKS[(idx - 1) % len(DOKS)]
+    rows.append(f"('{b['id']}', '{b['inc']}', '{b['nurse']}', '{assigned}', NULL, 'active', "
+                f"'{reg}', 'RSUD Kota Sehat', {q(INC_LOC[b['inc']])}, '{dpjp}')")
+reg_d = f"NICU-2026-{d['_idx']:04d}"
+rows.append(f"('{d['id']}', '{d['inc']}', '{d['nurse']}', '{d['admitted']}', '{d['discharged']}', "
+            f"'discharged', '{reg_d}', 'RSUD Kota Sehat', {q(INC_LOC[d['inc']])}, '{DOKS[(d['_idx']-1) % len(DOKS)]}')")
+w(",\n".join(rows) + ";")
+w()
+
+# ── maternal records (updates02) ──
+w("-- ── MATERNAL RECORDS (rekam medis ibu — updates02) ───────────────────────")
+w("INSERT INTO maternal_records (baby_id, " + ", ".join(_MAT_COLS) + ") VALUES")
+rows = []
+for b in BABIES + [DISCHARGED]:
+    m = b["_mat"]
+    vals = ", ".join(mat_value(c, m[c]) for c in _MAT_COLS)
+    rows.append(f"('{b['id']}', {vals})")
 w(",\n".join(rows) + ";")
 w()
 

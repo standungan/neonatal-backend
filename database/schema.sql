@@ -18,6 +18,13 @@ CREATE TYPE assignment_status AS ENUM ('active', 'discharged');
 
 CREATE TYPE gender_type AS ENUM ('laki_laki', 'perempuan');
 
+-- updates02 — expanded NICU intake / maternal record
+CREATE TYPE blood_type AS ENUM ('A', 'B', 'AB', 'O');
+CREATE TYPE pendidikan_type AS ENUM ('tidak_sekolah', 'sd', 'smp', 'sma', 'diploma', 's1', 's2', 's3');
+CREATE TYPE jenis_persalinan AS ENUM ('normal', 'sc', 'vakum', 'forceps');
+CREATE TYPE kondisi_umum AS ENUM ('baik', 'cukup', 'buruk');
+CREATE TYPE jenis_kehamilan AS ENUM ('tunggal', 'kembar');
+
 -- =============================================================================
 -- TABLE: users
 -- =============================================================================
@@ -60,6 +67,13 @@ CREATE TABLE babies (
     gestational_age     SMALLINT,            -- weeks
     birth_type          VARCHAR(100),        -- jenis kelahiran
     clinical_notes      TEXT,
+    -- extended identity (updates02)
+    no_rm_bayi          VARCHAR(50),
+    jam_lahir           TIME,
+    usia_masuk_nicu_jam SMALLINT,            -- hours
+    lingkar_kepala      NUMERIC(4, 1),       -- cm
+    lingkar_dada        NUMERIC(4, 1),       -- cm
+    golongan_darah      blood_type,
     is_active           BOOLEAN NOT NULL DEFAULT TRUE,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -85,18 +99,82 @@ CREATE TABLE parents (
 );
 
 -- =============================================================================
+-- TABLE: maternal_records  (updates02 — Rekam Jejak Ibu Bayi)
+-- One-to-one with babies. Mother name/phone stay in parents; this holds the
+-- structured obstetric / pregnancy / delivery record. All fields optional.
+-- =============================================================================
+
+CREATE TABLE maternal_records (
+    maternal_record_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    baby_id                 UUID NOT NULL UNIQUE REFERENCES babies(baby_id) ON DELETE CASCADE,
+    -- A. identitas ibu
+    no_rm_ibu               VARCHAR(50),
+    umur_ibu                SMALLINT,
+    pendidikan              pendidikan_type,
+    pekerjaan               VARCHAR(100),
+    alamat                  TEXT,
+    golongan_darah          blood_type,
+    -- B. riwayat obstetri
+    kehamilan_ke            SMALLINT,
+    jumlah_persalinan_hidup SMALLINT,
+    riwayat_abortus         BOOLEAN,
+    riwayat_prematur        BOOLEAN,
+    riwayat_bblr            BOOLEAN,
+    riwayat_bayi_meninggal  BOOLEAN,
+    -- C. riwayat kehamilan saat ini
+    usia_kehamilan_lahir    SMALLINT,
+    jenis_kehamilan         jenis_kehamilan,
+    anc_rutin               BOOLEAN,
+    jumlah_anc              SMALLINT,
+    hipertensi_kehamilan    BOOLEAN,
+    preeklamsia             BOOLEAN,
+    diabetes_gestasional    BOOLEAN,
+    infeksi_hamil           BOOLEAN,
+    perdarahan_hamil        BOOLEAN,
+    ketuban_pecah_dini      BOOLEAN,
+    merokok                 BOOLEAN,
+    paparan_asap_rokok      BOOLEAN,
+    konsumsi_alkohol        BOOLEAN,
+    obat_tertentu           BOOLEAN,
+    obat_tertentu_ket       TEXT,
+    -- D. riwayat persalinan
+    tanggal_persalinan      DATE,
+    jenis_persalinan        jenis_persalinan,
+    tempat_persalinan       VARCHAR(150),
+    indikasi_prematur       JSONB,           -- list[str]
+    indikasi_prematur_lainnya TEXT,
+    komplikasi_persalinan   JSONB,           -- list[str]
+    komplikasi_lainnya      TEXT,
+    apgar_menit_1           SMALLINT,
+    apgar_menit_5           SMALLINT,
+    -- E. kondisi ibu setelah melahirkan
+    kondisi_umum            kondisi_umum,
+    masih_dirawat           BOOLEAN,
+    komplikasi_postpartum   BOOLEAN,
+    dapat_berjalan          BOOLEAN,
+    dapat_menyusui          BOOLEAN,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
 -- TABLE: baby_incubator_assignments
 -- Tracks which baby is/was in which incubator, with full history
 -- =============================================================================
 
 CREATE TABLE baby_incubator_assignments (
-    assignment_id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    baby_id         UUID NOT NULL REFERENCES babies(baby_id),
-    incubator_id    UUID NOT NULL REFERENCES incubators(incubator_id),
-    assigned_by     UUID NOT NULL REFERENCES users(id),
-    assigned_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    discharged_at   TIMESTAMPTZ,
-    status          assignment_status NOT NULL DEFAULT 'active'
+    assignment_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    baby_id             UUID NOT NULL REFERENCES babies(baby_id),
+    incubator_id        UUID NOT NULL REFERENCES incubators(incubator_id),
+    assigned_by         UUID NOT NULL REFERENCES users(id),   -- perawat penerima
+    assigned_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),   -- tanggal masuk NICU
+    discharged_at       TIMESTAMPTZ,
+    status              assignment_status NOT NULL DEFAULT 'active',
+    -- registration data (updates02)
+    no_registrasi_nicu  VARCHAR(30) UNIQUE,                   -- auto: NICU-<year>-<0001…>
+    rumah_sakit         VARCHAR(150),
+    ruang_nicu          VARCHAR(100),
+    dpjp_id             UUID REFERENCES users(id)             -- dokter penanggung jawab
 );
 
 -- Only one active assignment per incubator at a time

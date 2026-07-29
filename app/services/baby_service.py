@@ -2,11 +2,14 @@ import uuid
 from datetime import date, datetime, timezone
 
 from fastapi import HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.assignment import BabyIncubatorAssignment
 from app.models.baby import Baby
+from app.models.maternal import MaternalRecord
 from app.models.parent import Parent
+from app.models.user import User
 from app.repositories.assignment_repository import AssignmentRepository
 from app.repositories.baby_repository import BabyRepository
 from app.repositories.incubator_repository import IncubatorRepository
@@ -16,11 +19,25 @@ from app.schemas.baby import (
     BabyDetailResponse,
     BabyResponse,
     BabyUpdate,
+    MaternalResponse,
     MonitoringSummary,
     ParentResponse,
 )
 from app.services.audit_service import log_action
 from app.services.monitoring_service import _check_vital_status
+
+
+async def _next_nicu_reg_no(db: AsyncSession) -> str:
+    """Generate the next NICU registration number: NICU-<year>-<0001…>."""
+    year = datetime.now(timezone.utc).year
+    prefix = f"NICU-{year}-"
+    result = await db.execute(
+        select(func.count())
+        .select_from(BabyIncubatorAssignment)
+        .where(BabyIncubatorAssignment.no_registrasi_nicu.like(f"{prefix}%"))
+    )
+    seq = (result.scalar_one() or 0) + 1
+    return f"{prefix}{seq:04d}"
 
 
 def _age_in_days(birth_date: date) -> int:
@@ -49,6 +66,15 @@ async def register_baby(
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Inkubator sudah terisi")
 
+    # DPJP, if given, must be an existing doctor
+    if data.dpjp_id is not None:
+        dpjp = await db.get(User, data.dpjp_id)
+        if not dpjp or dpjp.role != "dokter":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="DPJP harus mengacu ke pengguna dengan role dokter",
+            )
+
     # create baby
     baby = Baby(
         baby_name=data.baby_name,
@@ -59,11 +85,17 @@ async def register_baby(
         gestational_age=data.gestational_age,
         birth_type=data.birth_type,
         clinical_notes=data.clinical_notes,
+        no_rm_bayi=data.no_rm_bayi,
+        jam_lahir=data.jam_lahir,
+        usia_masuk_nicu_jam=data.usia_masuk_nicu_jam,
+        lingkar_kepala=data.lingkar_kepala,
+        lingkar_dada=data.lingkar_dada,
+        golongan_darah=data.golongan_darah,
     )
     baby_repo = BabyRepository(db)
     baby = await baby_repo.create(baby)
 
-    # create parent record
+    # create parent record (name / father / phone)
     parent = Parent(
         baby_id=baby.baby_id,
         mother_name=data.parent.mother_name,
@@ -75,14 +107,23 @@ async def register_baby(
         additional_notes=data.parent.additional_notes,
     )
     db.add(parent)
+
+    # create mother's medical record if provided
+    if data.maternal is not None:
+        db.add(MaternalRecord(baby_id=baby.baby_id, **data.maternal.model_dump()))
+
     await db.flush()
 
-    # create assignment
+    # create assignment (= NICU admission / registration)
     assignment = BabyIncubatorAssignment(
         baby_id=baby.baby_id,
         incubator_id=data.incubator_id,
         assigned_by=actor_id,
         status="active",
+        no_registrasi_nicu=await _next_nicu_reg_no(db),
+        rumah_sakit=data.rumah_sakit,
+        ruang_nicu=data.ruang_nicu,
+        dpjp_id=data.dpjp_id,
     )
     assignment = await AssignmentRepository(db).create(assignment)
 
@@ -189,6 +230,10 @@ async def _to_detail(baby: Baby, db: AsyncSession) -> BabyDetailResponse:
             location=active.incubator.location,
             assigned_at=active.assigned_at,
             assigned_by_name=active.assigned_by_user.full_name if active.assigned_by_user else None,
+            no_registrasi_nicu=active.no_registrasi_nicu,
+            rumah_sakit=active.rumah_sakit,
+            ruang_nicu=active.ruang_nicu,
+            dpjp_name=active.dpjp.full_name if active.dpjp else None,
         )
 
     latest = await BabyRepository(db).get_latest_monitoring(baby.baby_id)
@@ -227,10 +272,17 @@ async def _to_detail(baby: Baby, db: AsyncSession) -> BabyDetailResponse:
         gestational_age=baby.gestational_age,
         birth_type=baby.birth_type,
         clinical_notes=baby.clinical_notes,
+        no_rm_bayi=baby.no_rm_bayi,
+        jam_lahir=baby.jam_lahir,
+        usia_masuk_nicu_jam=baby.usia_masuk_nicu_jam,
+        lingkar_kepala=baby.lingkar_kepala,
+        lingkar_dada=baby.lingkar_dada,
+        golongan_darah=baby.golongan_darah,
         is_active=baby.is_active,
         created_at=baby.created_at,
         age_in_days=_age_in_days(baby.birth_date),
         parent=ParentResponse.model_validate(baby.parent) if baby.parent else None,
+        maternal=MaternalResponse.model_validate(baby.maternal_record) if baby.maternal_record else None,
         current_assignment=assignment_info,
         latest_vitals=latest_vitals,
     )

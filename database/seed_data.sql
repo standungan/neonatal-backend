@@ -14,7 +14,7 @@ BEGIN;
 
 -- Idempotent: clear existing rows (children first) before reseeding.
 TRUNCATE TABLE audit_logs, aksi_records, observations, parent_involvement_records,
-    monitoring_records, baby_incubator_assignments, parents, babies,
+    monitoring_records, baby_incubator_assignments, maternal_records, parents, babies,
     incubators, users RESTART IDENTITY CASCADE;
 
 -- ── USERS ────────────────────────────────────────────────────────────────
@@ -39,15 +39,15 @@ INSERT INTO incubators (incubator_id, incubator_no, location, status) VALUES
 ('bbbbbbbb-0002-0002-0002-000000000009', '09', 'NICU Ruang B', 'tidak_tersedia');
 
 -- ── BABIES ───────────────────────────────────────────────────────────────
-INSERT INTO babies (baby_id, baby_name, gender, birth_date, birth_weight, birth_length, gestational_age, birth_type, is_active) VALUES
-('cccccccc-0003-0003-0003-000000000001', 'Ahmad Rizki', 'laki_laki', '2026-06-24', 2400.00, 46.0, 35, 'SC', TRUE),
-('cccccccc-0003-0003-0003-000000000002', 'Siti Zahra', 'perempuan', '2026-06-26', 1950.00, 42.5, 33, 'Normal', TRUE),
-('cccccccc-0003-0003-0003-000000000003', 'Muhammad Farhan', 'laki_laki', '2026-06-22', 1450.00, 40.0, 30, 'Normal', TRUE),
-('cccccccc-0003-0003-0003-000000000004', 'Hana Putri', 'perempuan', '2026-06-20', 2800.00, 48.0, 37, 'SC', TRUE),
-('cccccccc-0003-0003-0003-000000000005', 'Bilqis Ramadhani', 'perempuan', '2026-06-28', 1100.00, 37.0, 28, 'SC', TRUE),
-('cccccccc-0003-0003-0003-000000000006', 'Kenzo Pratama', 'laki_laki', '2026-06-25', 1700.00, 41.0, 32, 'Normal', TRUE),
-('cccccccc-0003-0003-0003-000000000007', 'Aleena Zahira', 'perempuan', '2026-06-27', 2050.00, 43.0, 34, 'Normal', TRUE),
-('cccccccc-0003-0003-0003-000000000008', 'Gibran Maulana', 'laki_laki', '2026-06-05', 2600.00, 47.0, 36, 'Normal', FALSE);
+INSERT INTO babies (baby_id, baby_name, gender, birth_date, birth_weight, birth_length, gestational_age, birth_type, no_rm_bayi, jam_lahir, usia_masuk_nicu_jam, lingkar_kepala, lingkar_dada, golongan_darah, is_active) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'Ahmad Rizki', 'laki_laki', '2026-06-24', 2400.00, 46.0, 35, 'SC', 'RM-B-0001', '00:00:00', 4, 28.5, 26.7, 'O', TRUE),
+('cccccccc-0003-0003-0003-000000000002', 'Siti Zahra', 'perempuan', '2026-06-26', 1950.00, 42.5, 33, 'Normal', 'RM-B-0002', '00:00:00', 3, 26.4, 24.6, 'A', TRUE),
+('cccccccc-0003-0003-0003-000000000003', 'Muhammad Farhan', 'laki_laki', '2026-06-22', 1450.00, 40.0, 30, 'Normal', 'RM-B-0003', '18:30:00', 2, 24.8, 23.2, 'B', TRUE),
+('cccccccc-0003-0003-0003-000000000004', 'Hana Putri', 'perempuan', '2026-06-20', 2800.00, 48.0, 37, 'SC', 'RM-B-0004', '05:30:00', 11, 29.8, 27.8, 'AB', TRUE),
+('cccccccc-0003-0003-0003-000000000005', 'Bilqis Ramadhani', 'perempuan', '2026-06-28', 1100.00, 37.0, 28, 'SC', 'RM-B-0005', '21:30:00', 3, 22.9, 21.5, 'O', TRUE),
+('cccccccc-0003-0003-0003-000000000006', 'Kenzo Pratama', 'laki_laki', '2026-06-25', 1700.00, 41.0, 32, 'Normal', 'RM-B-0006', '21:45:00', 4, 25.4, 23.8, 'A', TRUE),
+('cccccccc-0003-0003-0003-000000000007', 'Aleena Zahira', 'perempuan', '2026-06-27', 2050.00, 43.0, 34, 'Normal', 'RM-B-0007', '15:00:00', 7, 26.7, 24.9, 'B', TRUE),
+('cccccccc-0003-0003-0003-000000000008', 'Gibran Maulana', 'laki_laki', '2026-06-05', 2600.00, 47.0, 36, 'Normal', 'RM-B-0008', '16:30:00', 10, 29.1, 27.3, 'O', FALSE);
 
 -- ── PARENTS (one-to-one with babies) ─────────────────────────────────────
 INSERT INTO parents (baby_id, mother_name, father_name, mother_phone, mother_medical_history) VALUES
@@ -60,16 +60,27 @@ INSERT INTO parents (baby_id, mother_name, father_name, mother_phone, mother_med
 ('cccccccc-0003-0003-0003-000000000007', 'Fitri Handayani', 'Rizal', '087890123456', NULL),
 ('cccccccc-0003-0003-0003-000000000008', 'Ayu Wandira', 'Teguh', '088901234567', NULL);
 
--- ── BABY ↔ INCUBATOR ASSIGNMENTS ─────────────────────────────────────────
-INSERT INTO baby_incubator_assignments (baby_id, incubator_id, assigned_by, assigned_at, discharged_at, status) VALUES
-('cccccccc-0003-0003-0003-000000000001', 'bbbbbbbb-0002-0002-0002-000000000001', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-24 08:00:00+07', NULL, 'active'),
-('cccccccc-0003-0003-0003-000000000002', 'bbbbbbbb-0002-0002-0002-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-26 08:00:00+07', NULL, 'active'),
-('cccccccc-0003-0003-0003-000000000003', 'bbbbbbbb-0002-0002-0002-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-06-22 08:00:00+07', NULL, 'active'),
-('cccccccc-0003-0003-0003-000000000004', 'bbbbbbbb-0002-0002-0002-000000000005', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-20 08:00:00+07', NULL, 'active'),
-('cccccccc-0003-0003-0003-000000000005', 'bbbbbbbb-0002-0002-0002-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-06-28 08:00:00+07', NULL, 'active'),
-('cccccccc-0003-0003-0003-000000000006', 'bbbbbbbb-0002-0002-0002-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-06-25 08:00:00+07', NULL, 'active'),
-('cccccccc-0003-0003-0003-000000000007', 'bbbbbbbb-0002-0002-0002-000000000008', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-06-27 08:00:00+07', NULL, 'active'),
-('cccccccc-0003-0003-0003-000000000008', 'bbbbbbbb-0002-0002-0002-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-05 09:00:00+07', '2026-06-30 10:00:00+07', 'discharged');
+-- ── BABY ↔ INCUBATOR ASSIGNMENTS (+ registration data, updates02) ─────────
+INSERT INTO baby_incubator_assignments (baby_id, incubator_id, assigned_by, assigned_at, discharged_at, status, no_registrasi_nicu, rumah_sakit, ruang_nicu, dpjp_id) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'bbbbbbbb-0002-0002-0002-000000000001', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-24 08:00:00+07', NULL, 'active', 'NICU-2026-0001', 'RSUD Kota Sehat', 'NICU Ruang A', 'aaaaaaaa-0001-0001-0001-000000000004'),
+('cccccccc-0003-0003-0003-000000000002', 'bbbbbbbb-0002-0002-0002-000000000002', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-26 08:00:00+07', NULL, 'active', 'NICU-2026-0002', 'RSUD Kota Sehat', 'NICU Ruang A', 'aaaaaaaa-0001-0001-0001-000000000006'),
+('cccccccc-0003-0003-0003-000000000003', 'bbbbbbbb-0002-0002-0002-000000000004', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-06-22 08:00:00+07', NULL, 'active', 'NICU-2026-0003', 'RSUD Kota Sehat', 'NICU Ruang A', 'aaaaaaaa-0001-0001-0001-000000000004'),
+('cccccccc-0003-0003-0003-000000000004', 'bbbbbbbb-0002-0002-0002-000000000005', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-20 08:00:00+07', NULL, 'active', 'NICU-2026-0004', 'RSUD Kota Sehat', 'NICU Ruang B', 'aaaaaaaa-0001-0001-0001-000000000006'),
+('cccccccc-0003-0003-0003-000000000005', 'bbbbbbbb-0002-0002-0002-000000000006', 'aaaaaaaa-0001-0001-0001-000000000003', '2026-06-28 08:00:00+07', NULL, 'active', 'NICU-2026-0005', 'RSUD Kota Sehat', 'NICU Ruang B', 'aaaaaaaa-0001-0001-0001-000000000004'),
+('cccccccc-0003-0003-0003-000000000006', 'bbbbbbbb-0002-0002-0002-000000000007', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-06-25 08:00:00+07', NULL, 'active', 'NICU-2026-0006', 'RSUD Kota Sehat', 'NICU Ruang B', 'aaaaaaaa-0001-0001-0001-000000000006'),
+('cccccccc-0003-0003-0003-000000000007', 'bbbbbbbb-0002-0002-0002-000000000008', 'aaaaaaaa-0001-0001-0001-000000000005', '2026-06-27 08:00:00+07', NULL, 'active', 'NICU-2026-0007', 'RSUD Kota Sehat', 'NICU Ruang B', 'aaaaaaaa-0001-0001-0001-000000000004'),
+('cccccccc-0003-0003-0003-000000000008', 'bbbbbbbb-0002-0002-0002-000000000003', 'aaaaaaaa-0001-0001-0001-000000000002', '2026-06-05 09:00:00+07', '2026-06-30 10:00:00+07', 'discharged', 'NICU-2026-0008', 'RSUD Kota Sehat', 'NICU Ruang A', 'aaaaaaaa-0001-0001-0001-000000000006');
+
+-- ── MATERNAL RECORDS (rekam medis ibu — updates02) ───────────────────────
+INSERT INTO maternal_records (baby_id, no_rm_ibu, umur_ibu, pendidikan, pekerjaan, alamat, golongan_darah, kehamilan_ke, jumlah_persalinan_hidup, riwayat_abortus, riwayat_prematur, riwayat_bblr, riwayat_bayi_meninggal, usia_kehamilan_lahir, jenis_kehamilan, anc_rutin, jumlah_anc, hipertensi_kehamilan, preeklamsia, diabetes_gestasional, infeksi_hamil, perdarahan_hamil, ketuban_pecah_dini, merokok, paparan_asap_rokok, konsumsi_alkohol, obat_tertentu, obat_tertentu_ket, tanggal_persalinan, jenis_persalinan, tempat_persalinan, indikasi_prematur, indikasi_prematur_lainnya, komplikasi_persalinan, komplikasi_lainnya, apgar_menit_1, apgar_menit_5, kondisi_umum, masih_dirawat, komplikasi_postpartum, dapat_berjalan, dapat_menyusui) VALUES
+('cccccccc-0003-0003-0003-000000000001', 'RM-I-0001', 37, 'sma', 'Ibu Rumah Tangga', 'Jl. Contoh No. 3, Kota', 'O', 1, 2, FALSE, FALSE, FALSE, FALSE, 35, 'tunggal', TRUE, 4, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, NULL, '2026-06-24', 'sc', 'RSUD Kota Sehat', NULL, NULL, NULL, NULL, 6, 8, 'baik', FALSE, FALSE, TRUE, TRUE),
+('cccccccc-0003-0003-0003-000000000002', 'RM-I-0002', 27, 'diploma', 'Guru', 'Jl. Contoh No. 6, Kota', 'A', 1, 0, TRUE, FALSE, FALSE, FALSE, 33, 'tunggal', TRUE, 3, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, NULL, '2026-06-26', 'normal', 'RSUD Kota Sehat', NULL, NULL, '["Tidak ada komplikasi"]'::jsonb, NULL, 7, 9, 'baik', FALSE, FALSE, TRUE, TRUE),
+('cccccccc-0003-0003-0003-000000000003', 'RM-I-0003', 27, 's1', 'Karyawan Swasta', 'Jl. Contoh No. 9, Kota', 'B', 4, 0, FALSE, TRUE, TRUE, FALSE, 30, 'tunggal', TRUE, 7, FALSE, FALSE, TRUE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, NULL, '2026-06-22', 'normal', 'RSUD Kota Sehat', '["Ketuban pecah dini (PPROM)", "Diabetes gestasional"]'::jsonb, NULL, NULL, NULL, 6, 8, 'cukup', TRUE, FALSE, TRUE, FALSE),
+('cccccccc-0003-0003-0003-000000000004', 'RM-I-0004', 24, 's1', 'Wiraswasta', 'Jl. Contoh No. 12, Kota', 'AB', 4, 2, FALSE, FALSE, TRUE, FALSE, 37, 'tunggal', FALSE, 5, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, NULL, '2026-06-20', 'sc', 'RSUD Kota Sehat', NULL, NULL, '["Tidak ada komplikasi"]'::jsonb, NULL, 7, 9, 'baik', FALSE, FALSE, TRUE, TRUE),
+('cccccccc-0003-0003-0003-000000000005', 'RM-I-0005', 25, 'smp', 'PNS', 'Jl. Contoh No. 15, Kota', 'O', 4, 0, FALSE, TRUE, FALSE, FALSE, 28, 'tunggal', TRUE, 7, TRUE, TRUE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, NULL, '2026-06-28', 'sc', 'RSUD Kota Sehat', '["Preeklamsia"]'::jsonb, NULL, '["Perdarahan"]'::jsonb, NULL, 4, 6, 'buruk', TRUE, TRUE, FALSE, FALSE),
+('cccccccc-0003-0003-0003-000000000006', 'RM-I-0006', 33, 's2', 'Perawat', 'Jl. Contoh No. 18, Kota', 'A', 1, 2, FALSE, FALSE, FALSE, FALSE, 32, 'tunggal', FALSE, 3, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, NULL, '2026-06-25', 'normal', 'RSUD Kota Sehat', NULL, NULL, NULL, NULL, 6, 8, 'baik', FALSE, FALSE, TRUE, TRUE),
+('cccccccc-0003-0003-0003-000000000007', 'RM-I-0007', 31, 'sma', 'Pedagang', 'Jl. Contoh No. 21, Kota', 'B', 3, 1, FALSE, FALSE, TRUE, FALSE, 34, 'tunggal', TRUE, 5, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, NULL, '2026-06-27', 'normal', 'RSUD Kota Sehat', NULL, NULL, '["Tidak ada komplikasi"]'::jsonb, NULL, 7, 9, 'baik', FALSE, FALSE, TRUE, TRUE),
+('cccccccc-0003-0003-0003-000000000008', 'RM-I-0008', 35, 'sma', 'Ibu Rumah Tangga', 'Jl. Contoh No. 24, Kota', 'O', 2, 1, FALSE, FALSE, TRUE, FALSE, 36, 'tunggal', TRUE, 2, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, NULL, '2026-06-05', 'normal', 'RSUD Kota Sehat', NULL, NULL, '["Tidak ada komplikasi"]'::jsonb, NULL, 7, 9, 'baik', FALSE, FALSE, TRUE, TRUE);
 
 -- ── MONITORING RECORDS (3x/day over the window) ──────────────────────────
 INSERT INTO monitoring_records

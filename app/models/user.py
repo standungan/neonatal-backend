@@ -29,7 +29,11 @@ class User(Base):
     )
 
     # relationships
-    assignments: Mapped[list["BabyIncubatorAssignment"]] = relationship(back_populates="assigned_by_user")
+    # assignment now has two FKs to users (assigned_by + dpjp_id); pin this to the recorder side.
+    assignments: Mapped[list["BabyIncubatorAssignment"]] = relationship(
+        back_populates="assigned_by_user",
+        foreign_keys="BabyIncubatorAssignment.assigned_by",
+    )
     monitoring_records: Mapped[list["MonitoringRecord"]] = relationship(back_populates="recorder")
     involvement_records: Mapped[list["ParentInvolvementRecord"]] = relationship(back_populates="recorder")
     audit_logs: Mapped[list["AuditLog"]] = relationship(back_populates="user")
